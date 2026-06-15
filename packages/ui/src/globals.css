@@ -1,0 +1,42 @@
+/* @vistral/ui — global CSS variables for apps that import this stylesheet. */
+
+:root {
+  --vistral-color-bg: #0a0a0a;
+  --vistral-color-surface: #111113;
+  --vistral-color-surface-raised: #1a1a1d;
+  --vistral-color-border: #27272a;
+  --vistral-color-text-primary: #fafafa;
+  --vistral-color-text-secondary: #a1a1aa;
+  --vistral-color-text-muted: #71717a;
+  --vistral-color-accent: #3b82f6;
+  --vistral-color-accent-foreground: #ffffff;
+  --vistral-color-danger: #ef4444;
+  --vistral-color-success: #10b981;
+  --vistral-color-warning: #f59e0b;
+
+  --vistral-radius-sm: 6px;
+  --vistral-radius-md: 10px;
+  --vistral-radius-lg: 14px;
+  --vistral-radius-xl: 20px;
+
+  --vistral-space-xs: 4px;
+  --vistral-space-sm: 8px;
+  --vistral-space-md: 12px;
+  --vistral-space-lg: 16px;
+  --vistral-space-xl: 24px;
+  --vistral-space-2xl: 32px;
+  --vistral-space-3xl: 48px;
+
+  --vistral-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+  --vistral-font-mono: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+}
+
+html,
+body {
+  background: var(--vistral-color-bg);
+  color: var(--vistral-color-text-primary);
+  font-family: var(--vistral-font-sans);
+  margin: 0;
+  padding: 0;
+}

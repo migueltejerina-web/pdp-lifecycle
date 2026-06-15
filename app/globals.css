@@ -1,0 +1,989 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "./prophero.css";
+
+/* Slider styles for range inputs - Matching Vistral Design System */
+input[type="range"].slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px; /* Height to accommodate thumb */
+  background: transparent;
+  outline: none;
+  margin: 10px 0;
+  cursor: pointer;
+}
+
+/* Track styles - The line/bar of the slider (Webkit) */
+input[type="range"].slider-thumb::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #e4e4e7; /* zinc-200 - matching DS SLIDER_TOKENS.track.bg */
+  border-radius: 9999px; /* Full rounded - matching DS SLIDER_TOKENS.track.radius */
+}
+
+/* Track styles - The line/bar of the slider (Firefox) */
+input[type="range"].slider-thumb::-moz-range-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #e4e4e7; /* zinc-200 - matching DS */
+  border-radius: 9999px; /* Full rounded */
+  border: none;
+}
+
+/* Thumb styles - The draggable circle (Webkit) */
+input[type="range"].slider-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px; /* matching DS SLIDER_TOKENS.thumb.size */
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff; /* matching DS SLIDER_TOKENS.thumb.bg */
+  cursor: pointer;
+  border: 2px solid #2050f6; /* spaceblue-600 - matching DS SLIDER_TOKENS.thumb.border */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* matching DS SLIDER_TOKENS.thumb.shadow */
+  margin-top: -7px; /* Center the thumb on the track: (20px thumb - 6px track) / 2 */
+  position: relative;
+}
+
+/* Thumb styles - The draggable circle (Firefox) */
+input[type="range"].slider-thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 2px solid #2050f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+/* Dark mode support */
+.dark input[type="range"].slider-thumb::-webkit-slider-runnable-track {
+  background: #333333; /* Darker track in dark mode */
+}
+
+.dark input[type="range"].slider-thumb::-moz-range-track {
+  background: #333333;
+}
+
+/* Slider with blue background */
+input[type="range"].slider-blue {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type="range"].slider-blue::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  background: transparent;
+}
+
+input[type="range"].slider-blue::-moz-range-track {
+  width: 100%;
+  height: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  background: transparent;
+}
+
+input[type="range"].slider-blue::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  border: none;
+  box-shadow: none;
+  margin-top: -4px;
+  position: relative;
+  z-index: 30;
+}
+
+input[type="range"].slider-blue::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  border: none;
+  box-shadow: none;
+  position: relative;
+  z-index: 30;
+}
+
+
+@custom-variant dark (&:is(.dark *));
+
+/* Custom animations for loader */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@layer utilities {
+  .animate-shimmer {
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@theme inline {
+  /* Base Colors (Prophero compatibility) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Vistral Design System Tokens - Colors */
+  --color-vistral-primary-50: var(--vistral-spaceblue-50);
+  --color-vistral-primary-100: var(--vistral-spaceblue-100);
+  --color-vistral-primary-200: var(--vistral-spaceblue-200);
+  --color-vistral-primary-500: var(--vistral-spaceblue-600);
+  --color-vistral-primary-600: var(--vistral-spaceblue-600);
+  --color-vistral-primary-700: var(--vistral-spaceblue-700);
+  --color-vistral-primary-800: var(--vistral-spaceblue-800);
+  --color-vistral-primary-900: var(--vistral-spaceblue-900);
+  
+  --color-vistral-success: var(--vistral-color-success);
+  --color-vistral-warning: var(--vistral-color-warning);
+  --color-vistral-error: var(--vistral-color-error);
+  --color-vistral-info: var(--vistral-color-info);
+  
+  --color-vistral-gray-50: var(--vistral-gray-50);
+  --color-vistral-gray-100: var(--vistral-gray-100);
+  --color-vistral-gray-200: var(--vistral-gray-200);
+  --color-vistral-gray-300: var(--vistral-gray-300);
+  --color-vistral-gray-400: var(--vistral-gray-400);
+  --color-vistral-gray-500: var(--vistral-gray-500);
+  --color-vistral-gray-600: var(--vistral-gray-600);
+  --color-vistral-gray-700: var(--vistral-gray-700);
+  --color-vistral-gray-800: var(--vistral-gray-800);
+  --color-vistral-gray-900: var(--vistral-gray-900);
+  --color-vistral-gray-950: var(--vistral-gray-950);
+  
+  --color-vistral-zinc-50: var(--vistral-zinc-50);
+  --color-vistral-zinc-100: var(--vistral-zinc-100);
+  --color-vistral-zinc-200: var(--vistral-zinc-200);
+  --color-vistral-zinc-300: var(--vistral-zinc-300);
+  --color-vistral-zinc-400: var(--vistral-zinc-400);
+  --color-vistral-zinc-500: var(--vistral-zinc-500);
+  --color-vistral-zinc-600: var(--vistral-zinc-600);
+  --color-vistral-zinc-700: var(--vistral-zinc-700);
+  --color-vistral-zinc-800: var(--vistral-zinc-800);
+  --color-vistral-zinc-900: var(--vistral-zinc-900);
+
+  /* Vistral Design System Tokens - Typography */
+  --font-vistral-sans: var(--vistral-font-family-sans);
+  --font-vistral-mono: var(--vistral-font-family-mono);
+  
+  --font-size-vistral-xs: var(--vistral-font-size-sm);
+  --font-size-vistral-sm: var(--vistral-font-size-sm);
+  --font-size-vistral-md: var(--vistral-font-size-md);
+  --font-size-vistral-lg: var(--vistral-font-size-lg);
+  --font-size-vistral-xl: var(--vistral-font-size-header-md);
+  --font-size-vistral-2xl: var(--vistral-font-size-header-lg);
+  --font-size-vistral-3xl: var(--vistral-font-size-header-xl);
+  
+  --font-weight-vistral-regular: var(--vistral-font-weight-regular);
+  --font-weight-vistral-medium: var(--vistral-font-weight-medium);
+  --font-weight-vistral-semibold: var(--vistral-font-weight-semibold);
+
+  /* Vistral Design System Tokens - Spacing */
+  --spacing-vistral-0: var(--vistral-spacing-0);
+  --spacing-vistral-1: var(--vistral-spacing-1);
+  --spacing-vistral-2: var(--vistral-spacing-2);
+  --spacing-vistral-3: var(--vistral-spacing-3);
+  --spacing-vistral-4: var(--vistral-spacing-4);
+  --spacing-vistral-5: var(--vistral-spacing-5);
+  --spacing-vistral-6: var(--vistral-spacing-6);
+  --spacing-vistral-8: var(--vistral-spacing-8);
+  --spacing-vistral-10: var(--vistral-spacing-10);
+  --spacing-vistral-12: var(--vistral-spacing-12);
+  --spacing-vistral-16: var(--vistral-spacing-16);
+  --spacing-vistral-20: var(--vistral-spacing-20);
+  --spacing-vistral-24: var(--vistral-spacing-24);
+
+  /* Vistral Design System Tokens - Radius */
+  --radius-vistral-sm: var(--vistral-radius-1);
+  --radius-vistral-md: var(--vistral-radius-2);
+  --radius-vistral-lg: var(--vistral-radius-3);
+  --radius-vistral-xl: var(--vistral-radius-4);
+  --radius-vistral-full: var(--vistral-radius-full);
+
+  /* Vistral Design System Tokens - Shadows */
+  --shadow-vistral-focus: var(--vistral-shadow-focus);
+  --shadow-vistral-1: var(--vistral-shadow-level-1);
+  --shadow-vistral-2: var(--vistral-shadow-level-2);
+  --shadow-vistral-3: var(--vistral-shadow-level-3);
+  --shadow-vistral-4: var(--vistral-shadow-level-4);
+
+  /* Responsive Grid System - Using Vistral tokens (preferred) with Prophero fallback */
+  --spacing-margin-xs: var(--vistral-grid-margin-xs, var(--prophero-margin-xs));
+  --spacing-margin-sm: var(--vistral-grid-margin-sm, var(--prophero-margin-sm));
+  --spacing-margin-md: var(--vistral-grid-margin-md, var(--prophero-margin-md));
+  --spacing-margin-lg: var(--vistral-grid-margin-lg, var(--prophero-margin-lg));
+  --spacing-margin-xl: var(--vistral-grid-margin-xl, var(--prophero-margin-xl));
+  --spacing-margin-xxl: var(--vistral-grid-margin-xxl, var(--prophero-margin-xxl));
+  
+  --spacing-gutter-xs: var(--vistral-grid-gutter-xs, var(--prophero-gutter-xs));
+  --spacing-gutter-sm: var(--vistral-grid-gutter-sm, var(--prophero-gutter-sm));
+  --spacing-gutter-md: var(--vistral-grid-gutter-md, var(--prophero-gutter-md));
+  --spacing-gutter-lg: var(--vistral-grid-gutter-lg, var(--prophero-gutter-lg));
+  --spacing-gutter-xl: var(--vistral-grid-gutter-xl, var(--prophero-gutter-xl));
+  --spacing-gutter-xxl: var(--vistral-grid-gutter-xxl, var(--prophero-gutter-xxl));
+
+  /* Breakpoints - Static values required (var() is invalid inside @media queries) */
+  --breakpoint-xs-max: 575px;
+  --breakpoint-sm-min: 577px;
+  --breakpoint-sm-max: 768px;
+  --breakpoint-md-min: 769px;
+  --breakpoint-md-max: 992px;
+  --breakpoint-lg-min: 993px;
+  --breakpoint-lg-max: 1199px;
+  --breakpoint-xl-min: 1201px;
+  --breakpoint-xl-max: 1400px;
+  --breakpoint-xxl-min: 1401px;
+}
+
+:root {
+  /* Vistral Design System Tokens (inlined to avoid @import ordering issues) */
+  --vistral-font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --vistral-font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  --vistral-font-size-1: 12px;
+  --vistral-font-size-2: 14px;
+  --vistral-font-size-3: 16px;
+  --vistral-font-size-4: 18px;
+  --vistral-font-size-5: 20px;
+  --vistral-font-size-6: 24px;
+  --vistral-font-size-7: 30px;
+  --vistral-font-size-8: 36px;
+  --vistral-font-size-9: 48px;
+  --vistral-font-size-xs: 12px;
+  --vistral-font-size-sm: 12px;
+  --vistral-font-size-md: 14px;
+  --vistral-font-size-lg: 16px;
+  --vistral-font-size-header-sm: 18px;
+  --vistral-font-size-header-md: 20px;
+  --vistral-font-size-header-lg: 24px;
+  --vistral-font-size-header-xl: 30px;
+  --vistral-font-size-header-2xl: 36px;
+  --vistral-font-size-header-3xl: 48px;
+  --vistral-font-weight-regular: 400;
+  --vistral-font-weight-medium: 500;
+  --vistral-font-weight-semibold: 600;
+  --vistral-line-height-1: 16px;
+  --vistral-line-height-2: 20px;
+  --vistral-line-height-3: 24px;
+  --vistral-line-height-4: 26px;
+  --vistral-line-height-5: 28px;
+  --vistral-line-height-6: 32px;
+  --vistral-line-height-7: 38px;
+  --vistral-line-height-8: 44px;
+  --vistral-line-height-9: 58px;
+  --vistral-letter-spacing-1: -0.2px;
+  --vistral-letter-spacing-2: -0.5px;
+  --vistral-letter-spacing-3: -0.7px;
+  --vistral-letter-spacing-4: -1px;
+  --vistral-letter-spacing-5: -1.2px;
+  --vistral-letter-spacing-6: -1.5px;
+  --vistral-letter-spacing-7: -2px;
+  --vistral-letter-spacing-8: -2px;
+  --vistral-letter-spacing-9: -3px;
+  --vistral-spacing-0: 0px;
+  --vistral-spacing-0-5: 2px;
+  --vistral-spacing-1: 4px;
+  --vistral-spacing-1-5: 6px;
+  --vistral-spacing-2: 8px;
+  --vistral-spacing-2-5: 10px;
+  --vistral-spacing-3: 12px;
+  --vistral-spacing-3-5: 14px;
+  --vistral-spacing-4: 16px;
+  --vistral-spacing-5: 20px;
+  --vistral-spacing-6: 24px;
+  --vistral-spacing-7: 28px;
+  --vistral-spacing-8: 32px;
+  --vistral-spacing-9: 36px;
+  --vistral-spacing-10: 40px;
+  --vistral-spacing-11: 44px;
+  --vistral-spacing-12: 48px;
+  --vistral-spacing-14: 56px;
+  --vistral-spacing-16: 64px;
+  --vistral-spacing-20: 80px;
+  --vistral-spacing-24: 96px;
+  --vistral-spacing-25: 100px;
+  --vistral-spacing-28: 112px;
+  --vistral-spacing-32: 128px;
+  --vistral-spacing-40: 160px;
+  --vistral-container-padding-xs: 12px;
+  --vistral-container-padding-sm: 16px;
+  --vistral-container-padding-md: 32px;
+  --vistral-container-padding-lg: 48px;
+  --vistral-container-padding-xl: 64px;
+  --vistral-container-padding-xxl: 80px;
+  --vistral-radius-0: 0px;
+  --vistral-radius-0-5: 2px;
+  --vistral-radius-1: 4px;
+  --vistral-radius-1-5: 6px;
+  --vistral-radius-2: 8px;
+  --vistral-radius-2-5: 10px;
+  --vistral-radius-3: 12px;
+  --vistral-radius-4: 16px;
+  --vistral-radius-5: 20px;
+  --vistral-radius-6: 24px;
+  --vistral-radius-8: 32px;
+  --vistral-radius-10: 40px;
+  --vistral-radius-12: 48px;
+  --vistral-radius-full: 9999px;
+  --vistral-breakpoint-xs: 0px;
+  --vistral-breakpoint-sm: 577px;
+  --vistral-breakpoint-md: 769px;
+  --vistral-breakpoint-lg: 993px;
+  --vistral-breakpoint-xl: 1201px;
+  --vistral-breakpoint-xxl: 1401px;
+  --vistral-grid-margin-xs: 16px;
+  --vistral-grid-margin-sm: 16px;
+  --vistral-grid-margin-md: 16px;
+  --vistral-grid-margin-lg: 32px;
+  --vistral-grid-margin-xl: 32px;
+  --vistral-grid-margin-xxl: 112px;
+  --vistral-grid-gutter-xs: 24px;
+  --vistral-grid-gutter-sm: 24px;
+  --vistral-grid-gutter-md: 24px;
+  --vistral-grid-gutter-lg: 24px;
+  --vistral-grid-gutter-xl: 24px;
+  --vistral-grid-gutter-xxl: 32px;
+  --vistral-layout-navbar-to-content: 16px;
+  --vistral-layout-content-heading-to-main: 24px;
+  --vistral-layout-section-gap: 32px;
+  --vistral-layout-sidebar-width: 240px;
+  --vistral-layout-container-max-width: 1400px;
+  --vistral-shadow-level-1: 0px 0px 16px 0px rgba(0, 0, 0, 0.06);
+  --vistral-shadow-level-2: 0px 0px 18px 0px rgba(0, 0, 0, 0.10);
+  --vistral-shadow-level-3: 0px 0px 24px 0px rgba(0, 0, 0, 0.16);
+  --vistral-shadow-level-4: 0px 0px 24px 0px rgba(0, 0, 0, 0.20);
+  --vistral-shadow-focus: 0px 0px 24px 0px rgba(0, 0, 0, 0.20);
+  --vistral-shadow-focus-button: 0px 0px 24px 0px rgba(0, 0, 0, 0.20);
+  --vistral-blur-1: 8px;
+  --vistral-blur-2: 12px;
+  --vistral-blur-3: 16px;
+  --vistral-blur-4: 24px;
+  --vistral-blur-5: 32px;
+  --vistral-blur-6: 40px;
+  --vistral-blur-7: 56px;
+  --vistral-blur-8: 64px;
+  --vistral-primary-default-bg: #2050F6;
+  --vistral-primary-default-text: #FFFFFF;
+  --vistral-primary-hover-bg: #3062F8;
+  --vistral-primary-hover-text: #FFFFFF;
+  --vistral-primary-active-bg: #1C328E;
+  --vistral-primary-active-text: #FFFFFF;
+  --vistral-primary-focused-bg: #2050F6;
+  --vistral-primary-focused-text: #FFFFFF;
+  --vistral-primary-disabled-bg: #6F88E1;
+  --vistral-primary-disabled-text: #E5E7EB;
+  --vistral-secondary-default-bg: #EDF0FD;
+  --vistral-secondary-default-text: #2050F6;
+  --vistral-secondary-hover-bg: #E0E4F9;
+  --vistral-secondary-hover-text: #2050F6;
+  --vistral-secondary-active-bg: #C8CDEE;
+  --vistral-secondary-active-text: #1C328E;
+  --vistral-secondary-focused-bg: #EDF0FD;
+  --vistral-secondary-focused-text: #2050F6;
+  --vistral-secondary-disabled-bg: #F4F6FB;
+  --vistral-secondary-disabled-text: #6F88E1;
+  --vistral-ghost-default-bg: #FFFFFF;
+  --vistral-ghost-default-text: #18181B;
+  --vistral-ghost-hover-bg: #F8F8FA;
+  --vistral-ghost-hover-text: #18181B;
+  --vistral-ghost-active-bg: #F0F0F2;
+  --vistral-ghost-active-text: #0A0A0B;
+  --vistral-ghost-focused-bg: #FFFFFF;
+  --vistral-ghost-focused-text: #18181B;
+  --vistral-ghost-disabled-bg: #FFFFFF;
+  --vistral-ghost-disabled-text: #A1A1AA;
+  --vistral-semantic-status-success: #23A06B;
+  --vistral-semantic-status-warning: #E9B134;
+  --vistral-semantic-status-error: #E0312F;
+  --vistral-semantic-status-info: #4F73F5;
+  --vistral-semantic-status-default: #666675;
+  --vistral-semantic-status-disabled: #C0C0C9;
+  --vistral-semantic-bg-default: #ffffff;
+  --vistral-semantic-bg-subtle: #fafafa;
+  --vistral-semantic-bg-muted: #f4f4f5;
+  --vistral-semantic-bg-selected: #eef4ff;
+  --vistral-semantic-bg-disabled: #f5f5f5;
+  --vistral-semantic-bg-brand: #2050f6;
+  --vistral-semantic-bg-brand-subtle: #eef4ff;
+  --vistral-semantic-bg-success: #dcfce7;
+  --vistral-semantic-bg-success-subtle: #f0fdf4;
+  --vistral-semantic-bg-error: #fee2e2;
+  --vistral-semantic-bg-error-subtle: #fef2f2;
+  --vistral-semantic-bg-warning: #ffedd5;
+  --vistral-semantic-bg-warning-subtle: #fffbeb;
+  --vistral-semantic-bg-info: #eef4ff;
+  --vistral-semantic-bg-info-subtle: #eff6ff;
+  --vistral-semantic-text-primary: #18181b;
+  --vistral-semantic-text-secondary: #71717a;
+  --vistral-semantic-text-muted: #a1a1aa;
+  --vistral-semantic-text-disabled: #a1a1aa;
+  --vistral-semantic-text-brand: #2050f6;
+  --vistral-semantic-text-success: #23A06B;
+  --vistral-semantic-text-error: #E0312F;
+  --vistral-semantic-text-warning: #E9B134;
+  --vistral-semantic-text-info: #4F73F5;
+  --vistral-semantic-icon-primary: #18181b;
+  --vistral-semantic-icon-secondary: #71717a;
+  --vistral-semantic-icon-muted: #a1a1aa;
+  --vistral-semantic-icon-disabled: #a1a1aa;
+  --vistral-semantic-icon-brand: #2050f6;
+  --vistral-semantic-icon-success: #23A06B;
+  --vistral-semantic-icon-error: #E0312F;
+  --vistral-semantic-icon-warning: #E9B134;
+  --vistral-semantic-icon-info: #4F73F5;
+  --vistral-semantic-border-default: #e5e7eb;
+  --vistral-semantic-border-subtle: #f3f4f6;
+  --vistral-semantic-border-muted: #e4e4e7;
+  --vistral-semantic-border-active: #2050f6;
+  --vistral-semantic-border-disabled: #f4f6fb;
+  --vistral-semantic-border-brand: #2050f6;
+  --vistral-semantic-border-success: #23A06B;
+  --vistral-semantic-border-error: #E0312F;
+  --vistral-semantic-border-warning: #E9B134;
+  --vistral-semantic-border-info: #4F73F5;
+  --vistral-semantic-interactive-brand-default: #2050f6;
+  --vistral-semantic-interactive-brand-hover: #3062F8;
+  --vistral-semantic-interactive-brand-pressed: #1C328E;
+  --vistral-semantic-interactive-danger-default: #E0312F;
+  --vistral-semantic-interactive-danger-hover: #dc2626;
+  --vistral-semantic-interactive-danger-pressed: #b91c1c;
+  --vistral-semantic-interactive-success-default: #23A06B;
+  --vistral-semantic-interactive-success-hover: #16a34a;
+  --vistral-semantic-interactive-success-pressed: #15803d;
+  --vistral-semantic-interactive-warning-default: #E9B134;
+  --vistral-semantic-interactive-warning-hover: #f59e0b;
+  --vistral-semantic-interactive-warning-pressed: #d97706;
+  --vistral-semantic-interactive-neutral-default: #666675;
+  --vistral-semantic-interactive-neutral-hover: #52525b;
+  --vistral-semantic-interactive-neutral-pressed: #3f3f46;
+  --vistral-semantic-interactive-disabled: #C0C0C9;
+  --vistral-component-link-default: #2050F6;
+  --vistral-component-link-hover: #3062F8;
+  --vistral-component-link-active: #1C328E;
+  --vistral-component-link-focused: #2050F6;
+  --vistral-component-border-default: #E5E7EB;
+  --vistral-component-border-brand: #2050F6;
+  --vistral-component-border-error: #E0312F;
+  --vistral-component-border-warning: #E9B134;
+  --vistral-component-border-success: #23A06B;
+  --vistral-component-border-focused: #2050F6;
+  --vistral-component-border-disabled: #F4F6FB;
+  --vistral-component-icon-default: #666675;
+  --vistral-component-icon-brand: #2050F6;
+  --vistral-component-icon-error: #E0312F;
+  --vistral-component-icon-warning: #E9B134;
+  --vistral-component-icon-success: #23A06B;
+  --vistral-component-icon-disabled: #C0C0C9;
+  --vistral-bg-default: var(--vistral-semantic-bg-default);
+  --vistral-bg-elevated: var(--vistral-semantic-bg-muted);
+  --vistral-bg-card: var(--vistral-semantic-bg-default);
+  --vistral-text-primary: var(--vistral-semantic-text-primary);
+  --vistral-text-secondary: var(--vistral-semantic-text-secondary);
+  --vistral-text-tertiary: var(--vistral-semantic-text-muted);
+  --vistral-text-disabled: var(--vistral-semantic-text-disabled);
+  --vistral-border-default: var(--vistral-semantic-border-default);
+  --vistral-border-hover: var(--vistral-semantic-border-muted);
+  --vistral-border-focus: var(--vistral-semantic-border-active);
+  --vistral-border-error: var(--vistral-semantic-border-error);
+
+  /* Using Prophero tokens */
+  --radius: var(--prophero-radius-lg);
+  --background: var(--prophero-gray-50);
+  --foreground: var(--prophero-gray-900);
+  --card: #ffffff;
+  --card-foreground: var(--prophero-gray-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--prophero-gray-900);
+  --primary: var(--prophero-blue-500);
+  --primary-foreground: #ffffff;
+  --secondary: var(--prophero-gray-100);
+  --secondary-foreground: var(--prophero-gray-900);
+  --muted: var(--prophero-gray-100);
+  --muted-foreground: var(--prophero-gray-600);
+  --accent: var(--prophero-blue-50);
+  --accent-foreground: var(--prophero-blue-700);
+  --destructive: var(--prophero-danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--prophero-gray-200);
+  --input: var(--prophero-gray-200);
+  --ring: var(--prophero-blue-500);
+  --chart-1: var(--prophero-blue-500);
+  --chart-2: var(--prophero-blue-400);
+  --chart-3: var(--prophero-blue-300);
+  --chart-4: var(--prophero-blue-200);
+  --chart-5: var(--prophero-blue-100);
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--prophero-gray-900);
+  --sidebar-primary: var(--prophero-blue-500);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--prophero-gray-100);
+  --sidebar-accent-foreground: var(--prophero-gray-900);
+  --sidebar-border: var(--prophero-gray-200);
+  --sidebar-ring: var(--prophero-blue-500);
+}
+
+.dark {
+  /* Dark Mode Color Scheme */
+  /* Background bg - Negro puro */
+  --background: #000000; /* Fondo negro puro */
+  --secondary: #1a1a1a; /* Gris muy oscuro para elementos elevados */
+  --card: #1f1f1f; /* Gris oscuro para cards */
+  --popover: #1a1a1a; /* Gris muy oscuro para popovers */
+  
+  /* Foreground fg */
+  --foreground: #ffffff; /* fg.primary - base.white */
+  --card-foreground: #ffffff; /* fg.primary */
+  --popover-foreground: #ffffff; /* fg.primary */
+  --secondary-foreground: #ffffff; /* fg.primary */
+  --muted-foreground: #a3a3a3; /* fg.secondary - gris medio */
+  
+  /* Brand */
+  --primary: #316eff; /* fg.brand - primary.500 */
+  --primary-foreground: #ffffff;
+  --ring: #316eff; /* border.brand - primary.500 */
+  
+  /* States - reduced saturation */
+  --destructive: #dc2626; /* Rojo más oscuro para mejor contraste en dark mode */
+  --destructive-foreground: #ffffff;
+  --accent: var(--prophero-blue-900);
+  --accent-foreground: #ffffff;
+  --muted: #262626; /* bg.elevated - gris oscuro */
+  
+  /* Borders - Grises para contraste con fondo negro */
+  --border: #333333; /* border.default - gris medio oscuro */
+  --input: #333333; /* border.default - gris medio oscuro */
+  --sidebar-border: #333333; /* border.default - gris medio oscuro */
+  
+  /* Charts */
+  --chart-1: var(--prophero-blue-400);
+  --chart-2: var(--prophero-blue-300);
+  --chart-3: var(--prophero-blue-200);
+  --chart-4: var(--prophero-blue-100);
+  --chart-5: var(--prophero-blue-50);
+  
+  /* Sidebar - Grises oscuros */
+  --sidebar: #1a1a1a; /* bg.elevated - gris muy oscuro */
+  --sidebar-foreground: #ffffff; /* fg.primary */
+  --sidebar-primary: #316eff; /* fg.brand - primary.500 */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #262626; /* bg.card - gris oscuro */
+  --sidebar-accent-foreground: #ffffff; /* fg.primary */
+  --sidebar-ring: #316eff; /* border.brand - primary.500 */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: 14px; /* Base font size for mobile */
+  }
+  
+  /* Cursor pointer for all clickable elements */
+  button:not(:disabled),
+  a,
+  [role="button"]:not(:disabled),
+  [onclick],
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  label[for] {
+    cursor: pointer;
+  }
+  
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
+  
+  /* Typography Hierarchy - Responsive */
+  h1 {
+    @apply text-xl md:text-2xl lg:text-3xl font-bold;
+  }
+  
+  h2 {
+    @apply text-lg md:text-xl lg:text-2xl font-semibold;
+  }
+  
+  /* Checklist section titles should use text-sm to match documentation section */
+  .checklist-section h2,
+  [class*="checklist"] h2 {
+    @apply text-sm font-semibold;
+  }
+  
+  h3 {
+    @apply text-base md:text-lg lg:text-xl font-semibold;
+  }
+  
+  h4 {
+    @apply text-sm md:text-base lg:text-lg font-semibold;
+  }
+  
+  /* Base text sizes - consistent across app */
+  .text-body {
+    @apply text-sm md:text-base;
+  }
+  
+  .text-small {
+    @apply text-xs md:text-sm;
+  }
+  
+  .text-caption {
+    @apply text-xs;
+  }
+  
+  /* Labels - consistent sizing */
+  label {
+    @apply text-sm font-medium;
+  }
+  
+  /* Inputs - consistent sizing for mobile */
+  input, textarea, select {
+    @apply text-sm md:text-base;
+  }
+  
+  /* Mobile-first responsive adjustments */
+  @media (max-width: 768px) {
+    /* Ensure inputs are readable on mobile */
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    input[type="tel"],
+    textarea,
+    select {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+  }
+}
+
+/* Empty date inputs should show placeholder-like gray text */
+input[type="date"].text-\[\#A1A1AA\]::-webkit-datetime-edit,
+input[type="date"].text-\[\#A1A1AA\]::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].text-\[\#A1A1AA\]::-webkit-datetime-edit-text,
+input[type="date"].text-\[\#A1A1AA\]::-webkit-datetime-edit-month-field,
+input[type="date"].text-\[\#A1A1AA\]::-webkit-datetime-edit-day-field,
+input[type="date"].text-\[\#A1A1AA\]::-webkit-datetime-edit-year-field {
+  color: #A1A1AA;
+}
+
+/* Custom scrollbar styles */
+.scrollbar-visible {
+  scrollbar-width: thin;
+}
+
+.scrollbar-visible::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: rgb(161 161 170);
+  border-radius: 3px;
+}
+
+.dark .scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: rgb(63 63 70);
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(113 113 122);
+}
+
+.dark .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(82 82 91);
+}
+
+.scrollbar-overlay {
+  scrollbar-width: thin;
+}
+
+.scrollbar-overlay::-webkit-scrollbar {
+  width: 6px;
+  display: block;
+}
+
+.scrollbar-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-overlay::-webkit-scrollbar-thumb {
+  background-color: rgb(161 161 170);
+  border-radius: 3px;
+}
+
+.dark .scrollbar-overlay::-webkit-scrollbar-thumb {
+  background-color: rgb(63 63 70);
+}
+
+.scrollbar-overlay::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(113 113 122);
+}
+
+.dark .scrollbar-overlay::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(82 82 91);
+}
+
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Brand tweaks */
+:root {
+  --brand-primary: #316eff;
+  --brand-primary-hover: #2246cc;
+}
+
+.dark {
+  --brand-primary: #316eff;
+  --brand-primary-hover: #2246cc;
+}
+
+/* Fix Select placeholder color - design system specificity issue in Tailwind CSS 4 */
+button[role="combobox"][data-placeholder] {
+  color: #A1A1AA;
+}
+
+/* Dialog close button - top-5, left side, not too close to edge (override vistral-design-system) */
+[role="dialog"] > button.absolute.right-4 {
+  top: calc(1.25rem - 2mm) !important;
+  right: auto !important;
+  left: calc(1rem - 2mm) !important;
+}
+
+/* Fix for Next.js dev overlay portal: zero footprint so it doesn't affect layout or get flagged.
+   Portal stays in DOM for error overlay; children (overlay) can still render and show.
+   :where() avoids Tailwind/PostCSS "expected a semicolon" on custom element selectors. */
+:where(nextjs-portal) {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  z-index: 9999;
+  isolation: isolate;
+}
+
+:where(nextjs-portal) > * {
+  pointer-events: auto;
+}
+
+/* Responsive Grid System Utilities */
+/* Container margins - responsive based on breakpoints */
+/* Uses Vistral tokens (preferred) with Prophero fallback */
+@layer utilities {
+  .container-margin {
+    padding-left: var(--vistral-grid-margin-xs, var(--prophero-margin-xs));
+    padding-right: var(--vistral-grid-margin-xs, var(--prophero-margin-xs));
+  }
+
+  @media (min-width: 577px) {
+    .container-margin {
+      padding-left: var(--vistral-grid-margin-sm, var(--prophero-margin-sm));
+      padding-right: var(--vistral-grid-margin-sm, var(--prophero-margin-sm));
+    }
+  }
+
+  @media (min-width: 769px) {
+    .container-margin {
+      padding-left: var(--vistral-grid-margin-md, var(--prophero-margin-md));
+      padding-right: var(--vistral-grid-margin-md, var(--prophero-margin-md));
+    }
+  }
+
+  @media (min-width: 993px) {
+    .container-margin {
+      padding-left: var(--vistral-grid-margin-lg, var(--prophero-margin-lg));
+      padding-right: var(--vistral-grid-margin-lg, var(--prophero-margin-lg));
+    }
+  }
+
+  @media (min-width: 1201px) {
+    .container-margin {
+      padding-left: var(--vistral-grid-margin-xl, var(--prophero-margin-xl));
+      padding-right: var(--vistral-grid-margin-xl, var(--prophero-margin-xl));
+    }
+  }
+
+  @media (min-width: 1401px) {
+    .container-margin {
+      padding-left: var(--vistral-grid-margin-xxl, var(--prophero-margin-xxl));
+      padding-right: var(--vistral-grid-margin-xxl, var(--prophero-margin-xxl));
+    }
+    
+    /* Center content with max width */
+    .container-margin {
+      max-width: var(--vistral-layout-container-max-width, 1920px);
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  /* Gutter utilities - responsive spacing between grid items */
+  /* Uses Vistral tokens (preferred) with Prophero fallback */
+  .gutter {
+    gap: var(--vistral-grid-gutter-xs, var(--prophero-gutter-xs));
+  }
+
+  @media (min-width: 577px) {
+    .gutter {
+      gap: var(--vistral-grid-gutter-sm, var(--prophero-gutter-sm));
+    }
+  }
+
+  @media (min-width: 769px) {
+    .gutter {
+      gap: var(--vistral-grid-gutter-md, var(--prophero-gutter-md));
+    }
+  }
+
+  @media (min-width: 993px) {
+    .gutter {
+      gap: var(--vistral-grid-gutter-lg, var(--prophero-gutter-lg));
+    }
+  }
+
+  @media (min-width: 1201px) {
+    .gutter {
+      gap: var(--vistral-grid-gutter-xl, var(--prophero-gutter-xl));
+    }
+  }
+
+  @media (min-width: 1401px) {
+    .gutter {
+      gap: var(--vistral-grid-gutter-xxl, var(--prophero-gutter-xxl));
+    }
+  }
+}
+
+/* Vistral logo loader: segment pulse */
+@keyframes vistral-segment-pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Vistral logo loader: spin */
+@keyframes vistral-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-vistral-segment-pulse {
+  animation: vistral-segment-pulse 1.2s ease-in-out infinite;
+}
+
+.animate-vistral-spin {
+  animation: vistral-spin 1.5s linear infinite;
+}
+
+/* Checklist pending-requirements pill: persistent blue ring + glow on the targeted
+   field after the PM clicks a missing field. Stays applied until the PM interacts
+   with the field (focus/click) or jumps to another field. Added/removed via JS in
+   `app/proyecto/[id]/checklist/page.tsx`. Uses box-shadow so it never affects layout
+   width/height or pushes neighboring elements. A short fade-in keyframe gives an
+   initial "arrival" cue so the PM notices the ring even on a fully-visible field. */
+@keyframes checklist-field-flash-in {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(32, 80, 246, 0),
+      0 0 0 0 rgba(32, 80, 246, 0);
+  }
+  40% {
+    box-shadow:
+      0 0 0 4px #2050f6,
+      0 0 0 12px rgba(32, 80, 246, 0.22);
+  }
+  100% {
+    box-shadow:
+      0 0 0 3px #2050f6,
+      0 0 0 8px rgba(32, 80, 246, 0.18);
+  }
+}
+
+.checklist-field-flash {
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 3px #2050f6,
+    0 0 0 8px rgba(32, 80, 246, 0.18);
+  animation: checklist-field-flash-in 0.6s ease-out;
+  scroll-margin-block: 96px;
+  transition: box-shadow 0.25s ease-out;
+}
+
+.checklist-field-flash-leaving {
+  box-shadow:
+    0 0 0 0 rgba(32, 80, 246, 0),
+    0 0 0 0 rgba(32, 80, 246, 0);
+}

@@ -1,0 +1,109 @@
+---
+description: "Supabase safety — never apply schema/storage/data changes directly via MCP or terminal; always use migration files"
+alwaysApply: true
+---
+
+# Supabase — No Direct Modifications (MCP or Terminal)
+
+## Project IDs (REFERENCE ONLY — never use to apply changes)
+
+| Environment | Project ID |
+|-------------|------------|
+| **Staging** | `jstxpfiutqmlrwhbyfjt` |
+| **Production** | `dryxwoffrfrtgavcrrgz` |
+
+Knowing the project ID does NOT authorize running mutations against it. Both environments are fully protected by this rule.
+
+## ABSOLUTE RULE: All Supabase Changes Go Through Migrations
+
+**No exceptions. No shortcuts. This applies via ANY vector — MCP tools, terminal commands, psql, Supabase CLI, REST API calls, or any other method.**
+
+This covers:
+- Schema changes (tables, columns, indexes, types, functions, triggers)
+- RLS policies
+- Storage buckets and bucket policies
+- Auth settings, JWT config, email templates
+- Any DML that modifies data (`INSERT`, `UPDATE`, `DELETE`, `UPSERT`, `TRUNCATE`)
+
+The only permitted operations are **read-only** (`SELECT`, `EXPLAIN`, inspection queries) — and only to understand current state, never to confirm a mutation just ran.
+
+## CRITICAL: Read-Only via MCP
+
+The Supabase MCP server is allowed **only for read operations**:
+- `execute_sql` → SELECT queries only — inspection, listing tables/policies, checking data
+- `list_tables`, `list_migrations`, `get_logs`, advisors, analytics
+
+**NEVER use MCP to:**
+- Run DDL (`CREATE TABLE`, `ALTER TABLE`, `DROP`, `CREATE POLICY`, etc.)
+- Run any DML that mutates data (`INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `UPSERT`)
+- Create, update, or delete Storage buckets or bucket policies
+- Change Auth settings, JWT config, or email templates
+- Call `apply_migration` or any mutation tool directly from chat
+- Run any SQL with side effects, even "temporary" or "quick fixes"
+
+## CRITICAL: Read-Only via Terminal
+
+The same prohibition applies to shell commands. **NEVER run via terminal:**
+
+```bash
+# ❌ ALL of these are forbidden
+psql "postgresql://..." -c "ALTER TABLE ..."
+supabase db push
+supabase db reset
+supabase migration up
+npx supabase db push
+curl -X POST https://jstxpfiutqmlrwhbyfjt.supabase.co/rest/v1/...   # any mutating REST call
+curl -X PATCH https://dryxwoffrfrtgavcrrgz.supabase.co/rest/v1/...
+```
+
+**Never pipe SQL into psql, never run `db push` or `db reset`, never call the Supabase REST API with POST/PATCH/PUT/DELETE from the terminal.**
+
+This applies to **both staging (`jstxpfiutqmlrwhbyfjt`) and production (`dryxwoffrfrtgavcrrgz`)**, even if the user asks to "just run it quickly", "apply it directly", or "it's only staging". Always decline and redirect to the migration workflow.
+
+## Required Workflow for ANY Supabase Change
+
+When a change to database structure, RLS, functions, storage, config, or data is needed:
+
+1. **Create a migration file** following `supabase/migrations/` conventions (timestamp prefix `YYYYMMDDHHmmSS_description.sql`).
+2. Use the **`nextjs/migration` skill** (`.cursor/skills/nextjs/migration/SKILL.md`) to scaffold the migration correctly with RLS, `search_path`, and staging verification.
+3. The migration gets reviewed in a PR — it does NOT run until merged. Once merged, **Supabase Branches** auto-applies it: staging on merge to `dev`, production on merge to `main`.
+
+## CRITICAL: Never Suggest the Supabase SQL Editor
+
+Never suggest or instruct the user to:
+- Open the Supabase dashboard SQL editor and run SQL there
+- Copy-paste SQL into `supabase.com/dashboard` to apply a change
+- Use the Table Editor in the Supabase UI to add/edit/delete rows or columns
+- Use the Storage UI to create or configure buckets
+- Make any change through the Supabase web interface
+
+Even if the user asks "can I just run this in the SQL editor?", the answer is **no** — always redirect to a migration file.
+
+> "No uses el SQL Editor del dashboard de Supabase para esto. Cualquier cambio en la base de datos debe ir por un archivo de migración en `supabase/migrations/` para que quede versionado, revisado, y sea reproducible en todos los ambientes."
+
+## What to Say Instead
+
+When a user asks to modify Supabase via MCP, terminal, SQL editor, or any direct method, respond with:
+
+> "Esta modificación afecta [área]. En lugar de aplicarla directamente, voy a crear un archivo de migración en `supabase/migrations/` para que pase por revisión antes de llegar a producción."
+
+Then invoke the migration skill and generate the `.sql` file.
+
+## Permitted MCP Read Examples
+
+```sql
+-- ✅ OK via MCP: inspect current state
+SELECT table_name, rls_enabled FROM information_schema.tables WHERE table_schema = 'public';
+SELECT * FROM pg_policies WHERE tablename = 'properties';
+SELECT * FROM properties LIMIT 10;
+```
+
+```sql
+-- ❌ NEVER via MCP: schema or data mutations
+CREATE TABLE new_table (...);
+ALTER TABLE properties ADD COLUMN foo text;
+CREATE POLICY "..." ON properties ...;
+INSERT INTO properties (...) VALUES (...);
+UPDATE properties SET status = 'active' WHERE ...;
+DELETE FROM properties WHERE ...;
+```

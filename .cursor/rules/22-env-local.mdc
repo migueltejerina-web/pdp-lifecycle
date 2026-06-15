@@ -1,0 +1,31 @@
+---
+description: Protect .env.local — never overwrite or delete without explicit user request
+globs:
+alwaysApply: true
+---
+
+# .env.local — Do Not Overwrite
+
+The PM's local credentials live in `.env.local`. **Never delete, truncate, or overwrite this file** unless the user explicitly asks to restore or sync env vars from Vercel.
+
+## FORBIDDEN (unless user explicitly requests env restore)
+
+- `vercel link` — overwrites `.env.local` with Vercel CLI boilerplate
+- `vercel env pull .env.local` — replaces the entire file (drops keys not on Vercel)
+- Writing, deleting, or emptying `.env.local` via any tool or shell redirect
+
+## Safe alternatives
+
+- **Deploy preview:** `vercel deploy` (project is already linked via `.vercel/project.json` — do not re-run `vercel link`)
+- **Restore env (only when user asks):** back up first, then pull:
+  ```bash
+  cp .env.local .env.local.backup 2>/dev/null || true
+  vercel env pull .env.local --environment=preview --yes
+  ```
+  Re-merge any local-only keys from `.env.local.backup` or `.env.local.example`.
+
+## Agent checklist
+
+- [ ] Do not read or paste `.env.local` contents in chat
+- [ ] Do not run Vercel CLI commands that touch `.env.local` without user approval
+- [ ] If deploy fails due to missing link, use existing `.vercel/project.json` or ask the user — do not auto-run `vercel link`

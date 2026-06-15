@@ -1,0 +1,38 @@
+---
+version: 2.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: ["**/lib/supabase/**", "**/app/api/**", "**/supabase/**"]
+alwaysApply: false
+description: "Supabase client patterns, types, migrations, and demo mode"
+---
+
+# Supabase Rules
+
+## Client Usage
+
+**Browser client** (`lib/supabase/client.ts`): Only in `"use client"` components.
+- `persistSession: true`, `autoRefreshToken: true`
+- NEVER use in Server Components or access service role
+
+**Server client** (`lib/supabase/server.ts`): Server Components, API routes, Server Actions.
+- Uses `cookies()` from `next/headers`
+- Can access service role key for admin operations
+
+## Types
+
+File: `lib/supabase/types.ts` — generated via `supabase gen types typescript`.
+
+- Always type clients with `Database`
+- Use table `Row`/`Insert`/`Update` types, not `any`
+- Regenerate after schema changes: `supabase gen types typescript`
+
+## Environment
+
+Read from `lib/config/environment.ts` — never `process.env` directly.
+`isDemoMode()` returns true when credentials are missing; use mock data in that case.
+
+## Migrations
+
+Location: `supabase/migrations/` — named `001_desc.sql`, `002_desc.sql`.
+NEVER modify existing. Always add new. Test in dev before prod.

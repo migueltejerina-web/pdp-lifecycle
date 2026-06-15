@@ -1,0 +1,41 @@
+---
+version: 2.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts"]
+alwaysApply: false
+description: "Vitest testing patterns — what to test, co-location, mocking"
+---
+
+# Testing Rules
+
+## Stack
+
+Vitest + @testing-library/react + @testing-library/jest-dom
+
+## When to Write Tests
+
+**DO:** Utility functions in `lib/`, hooks in `hooks/`, critical business logic, Zod schemas.
+**DON'T:** Simple UI components (use Browser MCP), one-off pages, API routes (test manually).
+
+## Location
+
+Co-locate next to source: `utils/validation.ts` -> `utils/validation.test.ts`
+
+## Patterns
+
+- `describe`/`it`/`expect` structure
+- `render` + `screen` for components
+- `renderHook` + `waitFor` for hooks
+- `.safeParse()` for Zod schema tests
+- `it.each` for tabular data
+
+## Mocking
+
+- `vi.mock('@/lib/supabase/client')` for Supabase
+- `vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))` for toasts
+- `vi.clearAllMocks()` in `beforeEach`
+
+## Commands
+
+`npm run test` | `npm run test:watch` | `npm run test:coverage`

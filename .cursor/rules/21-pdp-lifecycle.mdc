@@ -1,0 +1,13 @@
+---
+description: PDP Lifecycle product scope — not Supply/Reno/Settlement
+globs: "**/*"
+alwaysApply: true
+---
+
+# PDP Lifecycle — product boundary
+
+This repo is **PDP Lifecycle**, a greenfield Vistral app. Do not assume Supply kanbans, property pipelines, settlement, or Reno unless the user explicitly asks to port them.
+
+- Add features under `app/` and `lib/` for PDP Lifecycle domains only.
+- Reuse `components/ui/`, design tokens (`app/prophero.css`), and `.cursor/skills/`.
+- Supabase: new tables need migrations + RLS (see `11-migrations.mdc`).

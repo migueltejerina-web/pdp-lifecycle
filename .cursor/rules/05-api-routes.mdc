@@ -1,0 +1,73 @@
+---
+version: 2.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: ["**/app/api/**"]
+alwaysApply: false
+description: "API route structure, auth verification, response format, and service role usage"
+---
+
+# API Routes Rules
+
+## Structure
+
+Location: `app/api/` organized by domain. File: `route.ts` with GET/POST/PUT/DELETE exports.
+
+## Mandatory Pattern — 4-step order
+
+Every API route MUST follow this exact order. Do not skip or reorder steps.
+
+```typescript
+export async function POST(request: Request) {
+  try {
+    // STEP 1 — Auth check (always first)
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()  // NOT getSession()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // STEP 2 — Role check (for admin/protected endpoints only)
+    const { data: roleData } = await supabase
+      .from('user_roles').select('role').eq('user_id', user.id).single()
+    if (roleData?.role !== 'supply_admin')
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    // STEP 3 — Zod validation of input
+    const body = await request.json()
+    const input = MySchema.parse(body)  // throws ZodError on invalid input
+
+    // STEP 4 — Service call + response
+    const result = await myServiceFunction(input)
+    return NextResponse.json({ success: true, data: result })
+
+  } catch (error) {
+    if (error instanceof ZodError)
+      return NextResponse.json({ success: false, error: error.errors }, { status: 400 })
+    console.error('[MyRoute] POST error:', error)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+  }
+}
+```
+
+Real example from this codebase: `app/api/admin/users/route.ts` — GET and POST both follow auth → role → service → response.
+
+## Response Format
+
+Success: `{ success: true, data: {...} }` with status 200/201
+Error: `{ success: false, error: "message" }` with status 400/401/403/404/500
+
+## Zod Schemas
+
+Define schemas in `lib/validators/` or co-located with the route. Use `.parse()` (throws) not `.safeParse()` unless you need the error details in the response.
+
+```typescript
+import { z } from 'zod'
+const CreatePropertySchema = z.object({
+  address: z.string().min(1),
+  status: z.enum(['captacion', 'analisis', 'oferta']),
+})
+```
+
+## Service Role
+
+ONLY in `app/api/**` for admin operations that bypass RLS. Never for regular user operations.
+Use `config.supabase.url` from `lib/config/environment.ts` — never `process.env.NEXT_PUBLIC_SUPABASE_URL` directly.

@@ -1,0 +1,82 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-04-17
+glob: "**/*"
+alwaysApply: false
+description: "GSD workflow for PMs — which commands to use and when"
+---
+
+# GSD Workflow for PMs
+
+GSD (Get Stuff Done) is the structured workflow system used in this project. It ensures every code change has a plan, is tracked, and can be audited.
+
+## When to Use Each Command
+
+### Starting something new
+
+| Situation | Command |
+|-----------|---------|
+| Small fix, <30 min, 1–3 files | `/gsd-quick` |
+| New feature, needs a plan first | `/gsd-discuss-phase` then `/gsd-plan-phase` |
+| Bug — need to investigate first | `/gsd-debug` |
+| Want to jump straight to execution | `/gsd-execute-phase` (only if PLAN.md already exists) |
+
+### During development
+
+| Situation | Command |
+|-----------|---------|
+| Ready to build after planning | `/gsd-execute-phase` |
+| Something broke mid-work | `/gsd-debug` |
+| Need to pause and come back later | `/gsd-pause-work` |
+| Resuming after a break | `/gsd-resume-work` |
+| Check what's left to do | `/gsd-progress` |
+
+### Finishing and shipping
+
+| Situation | Command |
+|-----------|---------|
+| Done building, want to verify it works | `/gsd-verify-work` |
+| Ready to create a PR | `/gsd-ship` or use the `create-pr` skill |
+| Want a PR description generated | `create-pr` skill |
+
+### Alternative entry points (Party Modes)
+
+Party Modes are valid alternatives to GSD commands. They satisfy the same planning requirement:
+
+| Mode | Use when |
+|------|----------|
+| `HYPERFOCUS` | Need to ship something fast with full focus |
+| `MAESTRO` | Orchestrating a multi-step complex feature |
+| `Execute User Story` | You have a user story and want to go step by step |
+| `Incremental Changes` | Making small, careful changes to existing code |
+| `Code Reference` | Exploring existing code patterns before changing |
+
+## Standard PM Workflow
+
+```
+1. Describe what you want in plain language
+2. Claude summarizes intent + lists steps → review and confirm
+3. /gsd-plan-phase creates a PLAN.md → review it
+4. /gsd-execute-phase implements the plan
+5. /gsd-verify-work confirms it works
+6. create-pr skill creates the branch + PR
+```
+
+## What GSD Does NOT Automate
+
+These still require human judgment:
+- Database migrations → always review with a dev before applying to production
+- Auth/RLS changes → always flag for dev review
+- Deployment to production → Vercel auto-deploys on merge to `main`; preview deploys on PRs to `dev`
+
+## Quick Reference — Most Used Commands
+
+```
+/gsd-quick        → fast task, no planning overhead
+/gsd-debug        → something is broken, investigate
+/gsd-progress     → where am I, what's left
+/gsd-ship         → create PR from current work
+/gsd-pause-work   → context handoff before closing Cursor
+/gsd-resume-work  → restore context from last session
+```

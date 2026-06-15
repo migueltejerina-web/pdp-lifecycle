@@ -1,0 +1,123 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-05-08
+glob: "**/*.tsx"
+alwaysApply: false
+description: "React component structure — co-location, separation of concerns, Tailwind/Radix patterns"
+---
+
+# React Component Structure
+
+## Design System Check (MANDATORY before any new component)
+
+Before building a new component, check whether a Radix UI or `components/ui/` equivalent already exists:
+
+1. Check `components/ui/` for an existing shadcn/Radix component.
+2. If a match exists → import and use it. Do **not** recreate it locally.
+3. If no match exists → build a local component in the appropriate domain folder.
+4. **If in doubt** whether a shared component exists for the use case — **ask before building**.
+
+## Component Structure
+
+- Functional components only — no class components.
+- Named exports only — no default exports except page files (`app/**/page.tsx`).
+- Props interface must extend the relevant HTML element attributes and `Omit` conflicting props.
+- Use `React.forwardRef` + set `displayName` for any component reused across the app.
+
+```tsx
+export interface MyComponentProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export const MyComponent = React.forwardRef<HTMLDivElement, MyComponentProps>(
+  ({ value, onChange, className, ...props }, ref) => {
+    return <div ref={ref} className={cn('base-styles', className)} {...props} />;
+  },
+);
+MyComponent.displayName = 'MyComponent';
+```
+
+## File Organisation (MANDATORY)
+
+Co-locate every non-trivial component in its own directory:
+
+```
+components/{domain}/{ComponentName}/
+├── index.ts                       ← re-export only
+├── {ComponentName}.tsx            ← component implementation (NO constants, NO utility functions)
+├── {ComponentName}.types.ts       ← props interface and related types (when needed)
+├── {ComponentName}.constants.ts   ← lookup records, label maps, default values (when needed)
+├── {ComponentName}.utils.ts       ← pure helper functions scoped to this component (when needed)
+└── {ComponentName}.test.tsx       ← tests
+```
+
+Simple, single-file components (< 80 lines, no extracted constants or utils needed) may live as a single `.tsx` file without a directory.
+
+## Separation Rule (MANDATORY)
+
+- **Constants** (lookup records, label maps, default objects) must **never** live in `.tsx` files. Extract to `{ComponentName}.constants.ts`.
+- **Utility/helper functions** (formatters, transformers, validators) must **never** live in `.tsx` files. Extract to `{ComponentName}.utils.ts`.
+- **Types** used only by this component belong in `{ComponentName}.types.ts`.
+- The `.tsx` file holds only: the React component, its hooks, and event handlers.
+
+```tsx
+// ❌ BAD — constants and formatters inside .tsx
+const STATUS_LABELS = { pending: 'Pendiente', approved: 'Aprobado' };
+function formatAmount(v: number) { return `${v}€`; }
+export function MyCard({ status, amount }) { ... }
+
+// ✅ GOOD — clean .tsx, extracted files
+// MyCard.constants.ts → STATUS_LABELS
+// MyCard.utils.ts     → formatAmount
+// MyCard.tsx          → just the component
+```
+
+## Styling — Tailwind + cn()
+
+Use `cn()` from `@/lib/utils` for all conditional class merging. Never concatenate class strings manually.
+
+```tsx
+import { cn } from '@/lib/utils';
+
+<div className={cn('base px-4 py-2', isActive && 'bg-primary text-white', className)} />
+```
+
+Use `cva()` from `class-variance-authority` for variant-driven components:
+
+```tsx
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const buttonVariants = cva('inline-flex items-center rounded', {
+  variants: {
+    variant: {
+      default: 'bg-primary text-white',
+      outline: 'border border-input',
+    },
+    size: {
+      sm: 'h-8 px-3 text-sm',
+      md: 'h-10 px-4',
+    },
+  },
+  defaultVariants: { variant: 'default', size: 'md' },
+});
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {}
+```
+
+Always implement interactive states: `hover:`, `focus-visible:`, `disabled:opacity-50 disabled:cursor-not-allowed`.
+
+## Composition
+
+- Compose multiple small components instead of one large component.
+- Extract repeated UI patterns into `components/ui/` (shared) or `components/{domain}/` (domain-specific).
+- Pass behaviour via props and callbacks — avoid tight coupling to specific pages or providers.
+- Max 300 lines per component file. If exceeded, extract sub-components or move logic to a hook.
+
+## Radix UI
+
+Use Radix primitives for: Select, Dialog, Dropdown, Tooltip, Popover, Tabs, Accordion.
+Always include `asChild` support where the Radix primitive supports it.

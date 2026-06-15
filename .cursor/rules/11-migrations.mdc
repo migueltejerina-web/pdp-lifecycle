@@ -1,0 +1,132 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-04-24
+glob: "supabase/migrations/**"
+alwaysApply: true
+description: "Migration standards — timestamp naming, no direct commits to dev/main, never modify existing files"
+---
+
+# Migration Standards
+
+## Why These Rules Exist
+
+Multiple developers working in parallel grabbed the same sequential migration number, causing collisions that required manual fixes (migrations 141–146 had to be renumbered twice). These rules make collisions structurally impossible.
+
+## Naming Convention — Timestamp-Based (MANDATORY)
+
+All new migration files MUST use a timestamp prefix **with no underscore between date and time**, including seconds:
+
+```
+YYYYMMDDHHmmSS_description.sql
+```
+
+Examples:
+- `20260429155200_add_arras_payment_proof_file_type.sql`
+- `20260424143000_add_geolocation_columns.sql`
+- `20260424171500_add_rls_policy_to_properties.sql`
+
+**Why no underscore between date and time:** The Supabase CLI extracts migration versions with the regex `^([0-9]+)_` — everything before the **first underscore** becomes the version key stored in `schema_migrations`. If two files share the same date but differ only in time (e.g. `20260508_0930_*` and `20260508_1000_*`), both resolve to version `20260508`, causing a duplicate key error and blocking deployments with:
+
+> "Remote migration versions not found in local migrations directory."
+
+Using `YYYYMMDDHHmmSS_` (14-digit, second-level precision, no inner underscore) makes version collisions structurally impossible even when two developers commit in the same minute.
+
+**Why timestamps:** Two developers working simultaneously will produce different timestamps, making collisions impossible regardless of team size.
+
+**Legacy files** (sequential numbers 001–152) are grandfathered. Do NOT rename them.
+
+**12-digit legacy files** (e.g. `202604241600_*.sql`, `202605191200_*.sql`) — created before the 14-digit rule was enforced. Do NOT rename them UNLESS a newer 14-digit file shares the same first 12 characters (prefix overlap). In that case, the 12-digit file MUST be renamed to a 14-digit format to avoid CLI resolution failures (see Pre-Commit Check 2 below).
+
+## Branch Before You Migrate
+
+**NEVER add a migration file directly on `dev` or `main`.** Always:
+
+1. Create a feature branch: `git checkout -b feat/your-feature`
+2. Add your migration file there
+3. Open a PR to `dev`
+4. Merge via PR only
+
+This ensures the migration is reviewed alongside the code that uses it, and prevents two people from landing on `dev` at the same time with conflicting files.
+
+## Never Modify Existing Migration Files
+
+Once a migration file is committed to any branch, treat it as **immutable**. If you need to change something:
+- Add a NEW migration that alters or corrects the previous one
+- Never edit the original file — it may have already run in staging or production
+
+```sql
+-- WRONG: editing 202604241430_add_geolocation_columns.sql after it merged
+-- CORRECT: create 202604250900_fix_geolocation_index.sql
+```
+
+## RLS Reminder
+
+Every new table migration MUST include RLS. See [00-core.mdc](00-core.mdc) for the required boilerplate:
+
+```sql
+ALTER TABLE your_table ENABLE ROW LEVEL SECURITY;
+-- Then add at least one policy
+```
+
+## Pre-Commit Check (MANDATORY before every migration commit)
+
+**Check 1 — Exact duplicate version keys:**
+
+```bash
+for f in supabase/migrations/*.sql; do basename "$f" | sed -E 's/^([0-9]+)_.*/\1/'; done | sort | uniq -d
+```
+
+If the output is **non-empty**, there are colliding version keys — rename the offending files to use a longer/unique prefix (e.g. add HHMM to a date-only prefix) before committing.
+
+**Check 2 — Prefix overlap between 12-digit and 14-digit keys (CRITICAL):**
+
+```bash
+for f in supabase/migrations/*.sql; do basename "$f" | sed -E 's/^([0-9]+)_.*/\1/'; done | sort | while read v; do
+  if [ ${#v} -eq 12 ]; then
+    grep -q "^${v}" <<< "$(for f2 in supabase/migrations/*.sql; do basename "$f2" | sed -E 's/^([0-9]+)_.*/\1/'; done | grep -v "^${v}$")" && echo "PREFIX_OVERLAP: ${v}"
+  fi
+done
+```
+
+If any `PREFIX_OVERLAP` lines appear, a 12-digit key shares its prefix with a 14-digit key. **The Supabase CLI cannot resolve the 12-digit file when the 14-digit file exists.** This blocks ALL `db push` operations with "Remote migration versions not found in local migrations directory."
+
+**Fix:** Rename the 12-digit file to a unique 14-digit timestamp, then repair both staging and prod `schema_migrations` with `supabase migration repair`.
+
+Both checks must pass (empty output) before committing.
+
+## Conflict Recovery Checklist
+
+If you encounter duplicate migration numbers during a merge or rebase:
+
+1. Run the pre-commit check above to identify all duplicates.
+2. Identify which file belongs to which feature.
+3. Rename the branch's file to a unique timestamp: `git mv old_name.sql new_name.sql`
+4. Stage and continue the merge/rebase.
+
+## When AI Agents Create Migrations
+
+When using Cursor or another AI agent to generate a migration:
+- The agent MUST use the `YYYYMMDDHHmmSS_description.sql` format (14 digits, seconds precision, no underscore between date and time)
+- The agent MUST derive the timestamp from the current date/time at the moment of file creation
+- The agent MUST NOT use `YYYYMMDDHHMM_` (12 digits, minute-only — accepted but superseded by the 14-digit format)
+- The agent MUST NOT use `YYYYMMDD_HHMM_` or any format with an inner underscore (causes version collisions)
+- The agent MUST NOT pick the next sequential integer
+- Always run the pre-commit check above before committing
+
+## How Migrations Reach Production (Supabase Branches)
+
+Once merged, migrations are applied automatically by **Supabase Branches** — **never** by the agent directly, and **never** via the Supabase MCP or SQL editor.
+
+| Git branch | Supabase project | Trigger |
+|---|---|---|
+| `dev` | `jstxpfiutqmlrwhbyfjt` (staging preview) | Auto-apply on merge to `dev` |
+| `main` | `dryxwoffrfrtgavcrrgz` (production) | Auto-apply on merge to `main` |
+
+Supabase Branches detects new files in `supabase/migrations/` and applies them automatically. It tracks applied migrations in `supabase_migrations.schema_migrations`, so re-runs are idempotent.
+
+**If a migration fails:**
+
+1. The Supabase Branch status changes to `MIGRATIONS_FAILED`.
+2. Use the `diagnose-migrations` skill (`.cursor/skills/diagnose-migrations/SKILL.md`) or inspect state via MCP: `SELECT version FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 5`.
+3. Write a corrective migration (never edit the failed one) and ship it through the normal PR flow.

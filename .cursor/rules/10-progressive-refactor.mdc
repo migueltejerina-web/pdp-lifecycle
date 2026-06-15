@@ -1,0 +1,77 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-04-17
+glob: "**/*"
+alwaysApply: false
+description: "Progressive refactor — 300-line rule, layer separation, only for files being modified"
+---
+
+# Progressive Refactor
+
+## The 300-Line Rule
+
+**When you are already modifying a file that exceeds 300 lines, extract the pieces you touch into separate files.**
+
+This rule is NOT a reason to refactor files you are NOT touching. Do not add extra scope to a PR just to clean up unrelated files.
+
+The trigger is simple:
+- You open a file to make a change
+- The file is >300 lines
+- As part of your change, extract the logic you're adding/modifying into a properly-named layer file
+
+## Layer Separation Pattern
+
+Every domain area should follow this file separation. When a file grows past 300 lines, split it along these boundaries:
+
+| File suffix | What goes there |
+|-------------|-----------------|
+| `*.types.ts` | TypeScript interfaces and type aliases only — no logic |
+| `*.validators.ts` | Zod schemas for forms and API input validation |
+| `*.service.ts` | Business logic — fetching, transforming, saving data |
+| `*.domain.ts` | Domain constants, enums, helper functions specific to that domain |
+| `*.hooks.ts` or `use*.ts` | React hooks that encapsulate state and data fetching |
+
+Example — a `properties` domain that has grown:
+
+```
+lib/
+  supply-properties-supabase.ts    → original (stays, or becomes service)
+  supply-properties.types.ts       → Property, PropertyInsert, etc.
+  supply-properties.validators.ts  → PropertyFormSchema, StatusSchema
+  supply-properties.service.ts     → fetchProperty(), updateStatus()
+  supply-properties.domain.ts      → STATUS_LABELS, ROLE_PERMISSIONS
+```
+
+## What to Extract vs What to Leave
+
+**Extract:**
+- A function you are modifying that has >50 lines of its own
+- A set of types that are imported by >2 other files
+- A Zod schema that is used in multiple places
+- Business logic mixed into a React component
+
+**Do NOT extract:**
+- Logic you are not touching in this PR
+- Small helpers (<10 lines) that are only used once
+- Types that are only used in the file they're defined
+
+## No Big Bang Refactors
+
+Never refactor an entire domain in one PR just because one file was large. That creates huge diffs that are impossible to review and high risk for regressions.
+
+The pattern: **leave the old file in place, extract the new piece into a properly-named file, import it from the old location.** The consumer code doesn't need to change.
+
+```typescript
+// supply-properties-supabase.ts — BEFORE (300+ lines, getting unwieldy)
+export function fetchProperty(...) { ... }
+export const PropertyFormSchema = z.object(...)  // 40 lines of Zod
+
+// AFTER — extract only the validator, leave everything else
+// supply-properties-supabase.ts
+export { PropertyFormSchema } from './supply-properties.validators'  // re-export
+export function fetchProperty(...) { ... }  // stays here
+
+// supply-properties.validators.ts (new file, only created because you were editing it)
+export const PropertyFormSchema = z.object(...)
+```

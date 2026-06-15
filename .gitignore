@@ -1,0 +1,79 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# GSD planning docs (local-only)
+.planning/local/
+.planning/phases/
+.planning/quick/
+.planning/todos/
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env.local
+.env.staging
+.env.production
+.env.vercel
+
+# cursor mcp config (contains API keys)
+.cursor/mcp.json
+.cursor/debug*.log
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local migration caches
+scripts/.cache/
+
+# Airtable → SQL exports (PII); keep directory via scripts/output/.gitkeep
+scripts/output/*.sql
+
+# Office Excel lock files
+**/~$*
+
+# Supabase CLI cache (local)
+supabase/.temp/**
+
+# Spawner runtime output (temp files written during new-app runs)
+.spawn/
+
+# Local scratch / ad-hoc report files (e.g. Airtable import reports)
+/tmp/
+
+PR_DESCRIPTION.md
+PR_DESCRIPTION.md
+
+# Replication packs (local-only — for porting features to other apps)
+/replication-pack/
+/replication-pack*/
+/replication-pack*.zip
+FINANCIALS_CONTEXT.md
+RENOVATION_BUDGETS_CONTEXT.md
+PROJECT_DOCUMENTS_CONTEXT.md
+WIPS_PROJECT_FORMS_CONTEXT.md

@@ -1,0 +1,38 @@
+---
+version: 2.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: ["**/*.ts", "**/*.tsx"]
+alwaysApply: false
+description: "Error handling mandate — try/catch, toast feedback, contextual logging"
+---
+
+# Error Handling Rules (MANDATORY for all async operations)
+
+## Pattern
+
+```typescript
+try {
+  const result = await operation()
+  toast.success('Done')
+} catch (error) {
+  console.error('[Context] Failed:', error)
+  toast.error('Something went wrong')
+}
+```
+
+## Requirements
+
+- **try/catch** on every async operation — no silent failures
+- **toast** from `sonner` for user feedback (success and error)
+- **console.error** with `[Context]:` brackets — be specific: `[Create Property Error]:` not `[Error]:`
+- **Loading states**: `useState(false)`, disable button during async, `finally { setIsLoading(false) }`
+- **Supabase calls**: always check `{ data, error }` — if error, throw or handle
+
+## Forbidden
+
+- Silent `await` without try/catch
+- `console.log(error)` without `[Context]` brackets
+- No user feedback after async operations
+- Empty catch blocks
+- `alert()` for errors — use `toast` instead

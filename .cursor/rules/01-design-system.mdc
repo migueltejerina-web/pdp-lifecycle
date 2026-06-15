@@ -1,0 +1,52 @@
+---
+version: 3.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: ["**/components/**", "**/*.css", "**/app/**/*.tsx"]
+alwaysApply: false
+description: "Vistral Design System — components, tokens, grid, and component patterns"
+---
+
+# Design System Rules
+
+## Component Priority
+
+1. `@vistral/design-system` — always prefer (Button, Input, Select, Dialog, Card, Tabs, etc.)
+2. `@/components/ui/` — only for components not yet in Vistral DS
+3. If creating locally, add comment: `// TODO: Candidate for Vistral DS`
+
+Storybook: https://vistral-design-system.vercel.app/
+
+## Design Tokens
+
+CSS variables use `--vistral-*` prefix (preferred), with `--prophero-*` fallback.
+
+- Colors: `--vistral-color-primary-500`, `--vistral-color-success/warning/error/info`, `--vistral-gray-*`
+- Typography: `--vistral-font-size-sm` through `--vistral-font-size-header-3xl`, Inter font
+- Spacing: `--vistral-spacing-0` through `--vistral-spacing-24`
+- Radius: `--vistral-radius-1` (4px) through `--vistral-radius-6` (24px)
+- Shadows: `--vistral-shadow-level-1` through `--vistral-shadow-level-4`
+
+Token source: `@vistral/design-system/tokens.css` (imported in `app/globals.css`)
+
+## Grid Breakpoints
+
+| Breakpoint | Range | Margin | Gutter |
+|------------|-------|--------|--------|
+| XS | <576px | 20px | 12px |
+| SM | 577-768px | 32px | 12px |
+| MD | 769-992px | 40px | 16px |
+| LG | 993-1199px | 80px | 28px |
+| XL | 1200-1400px | 100px | 32px |
+| XXL | >1400px | 112px centered max 1920px | 32px |
+
+CSS classes: `container-margin`, `gutter`
+TypeScript: `import { BREAKPOINTS, SPACING } from '@/lib/constants'`
+
+## Component Patterns
+
+- Always use `cn()` from `@/lib/utils` for className merging
+- Use `cva()` + `VariantProps` for variant-based components
+- Components wrapping native elements MUST use `forwardRef`
+- Use Radix UI primitives for accessible modals, selects, dropdowns
+- Dark mode via `.dark` class and CSS variables

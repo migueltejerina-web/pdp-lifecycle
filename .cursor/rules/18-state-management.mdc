@@ -1,0 +1,115 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-05-08
+glob: "**/*.{ts,tsx}"
+alwaysApply: false
+description: "State management — useState scope, React Context + useReducer, server data, useEffect rules"
+---
+
+# State Management
+
+## State Scope Decision Guide
+
+| Scope | Solution |
+|-------|----------|
+| Single component (transient UI) | `useState` |
+| Cross-component (2–3 levels) | Lift state up via props |
+| Shared state across a subtree | React Context + `useReducer` |
+| Server data (fetched, cached) | Supabase hook or React Query (`useQuery` / `useMutation`) |
+| App-wide context (auth, i18n, theme) | Existing providers in `lib/auth/` or `app/layout.tsx` |
+
+**Always pick the smallest scope that solves the problem.** Do not reach for Context when props suffice.
+
+## useState
+
+- Use for local, transient UI state: open/closed, selected tab, form field values.
+- Do **not** use for data that comes from the server — use a Supabase hook.
+- Do **not** use for state shared across multiple unrelated components — use React Context.
+
+## React Context + useReducer
+
+For complex shared state, use `createContext` with `useReducer`. This is the primary pattern for client-side state in pdp-lifecycle-units.
+
+```typescript
+interface State {
+  properties: Property[];
+  isLoading: boolean;
+}
+
+type Action =
+  | { type: 'SET_PROPERTIES'; payload: Property[] }
+  | { type: 'SET_LOADING'; payload: boolean };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'SET_PROPERTIES':
+      return { ...state, properties: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+  }
+}
+
+const MyContext = createContext<{ state: State; dispatch: Dispatch<Action> } | null>(null);
+```
+
+**Before creating a new context/provider:** check existing providers in `lib/auth/app-auth-context.tsx` and app layout files. Reuse or extend an existing provider before creating a new one.
+
+## Server Data — Supabase Hooks
+
+Fetch server data inside custom hooks, not directly in components.
+
+```typescript
+// hooks/useProperties.ts
+export function useProperties(filters: PropertyFilters): UsePropertiesReturn {
+  const [data, setData] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    fetchProperties(filters)
+      .then((rows) => { if (!cancelled) setData(rows); })
+      .catch((err) => { if (!cancelled) setError(err); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [filters]);
+
+  return { data, isLoading, error };
+}
+```
+
+## useEffect Rules
+
+- One effect per concern — never combine unrelated logic in a single `useEffect`.
+- Always return a cleanup function if the effect sets up a subscription, interval, or listener.
+- Keep dependency arrays complete and accurate — never suppress `react-hooks/exhaustive-deps`.
+- Do **not** use effects for derived state — compute with `useMemo` instead.
+- Cancel async operations on unmount using a `cancelled` flag or `AbortController` (see `17-hooks.mdc`).
+
+## Controlled Components
+
+All form elements must be controlled. Use react-hook-form + Zod resolver (see `04-forms-ui.mdc`).
+
+```typescript
+const { register, handleSubmit } = useForm<FormValues>({
+  resolver: zodResolver(schema),
+  defaultValues: PROPERTY_FORM_DEFAULTS,
+});
+```
+
+## Supabase Realtime
+
+When subscribing to Supabase Realtime channels, always unsubscribe on unmount:
+
+```typescript
+useEffect(() => {
+  const channel = supabase
+    .channel('properties')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, handler)
+    .subscribe();
+
+  return () => { supabase.removeChannel(channel); };
+}, []);
+```

@@ -1,0 +1,41 @@
+---
+version: 2.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: ["**/lib/auth/**", "**/app/**/page.tsx", "**/components/**"]
+alwaysApply: false
+description: "Two-layer auth, roles, permission functions, and protected route patterns"
+---
+
+# Auth & Permissions Rules
+
+## Two-Layer Architecture
+
+1. **Supabase Auth** — identity + session
+2. **SupabaseAuthProvider** (`lib/auth/supabase-auth-context.tsx`) — session context
+3. **AppAuthProvider** (`lib/auth/app-auth-context.tsx`) — role resolution from `user_roles` table
+
+Provider order in `app/layout.tsx`: ThemeProvider > I18nProvider > SupabaseAuthProvider > AppAuthProvider > children
+
+## Roles
+
+Type: `Database['public']['Enums']['app_role']`
+Values: `supply_partner`, `supply_analyst`, `supply_admin`, `supply_lead`, `renovator_analyst`, `reno_lead`
+
+NEVER hardcode role strings. Use typed arrays:
+```typescript
+const allowed: AppRole[] = ['supply_admin', 'supply_lead']
+```
+
+## Permissions
+
+Centralize in `lib/auth/permissions.ts` — use permission functions (`canViewProperty`, `canEditProperty`), not inline role checks.
+
+## Hooks
+
+- `useSupabaseAuthContext()`: `user`, `loading`, `signOut`
+- `useAppAuth()`: `user`, `role`, `isLoading`, `hasRole()`, `hasAnyRole()`, `isAdmin`
+
+## Protected Routes
+
+Check `user` + role in `useEffect`, redirect to `/login` if unauthorized.

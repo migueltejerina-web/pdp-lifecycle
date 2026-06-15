@@ -1,0 +1,137 @@
+---
+description: Internationalization — using useI18n, adding translation keys, and keeping ES/EN in sync
+globs: components/**/*.tsx, app/**/*.tsx, app/**/*.ts, hooks/**/*.ts, lib/i18n/**
+alwaysApply: false
+---
+
+# Internationalization (i18n)
+
+## Architecture
+
+Two languages: **Spanish (es)** — primary, **English (en)** — secondary.
+
+| File | Purpose |
+|------|---------|
+| `lib/i18n/translations.ts` | `Translations` interface + `es` / `en` objects |
+| `lib/i18n/context.tsx` | `I18nProvider` + `useI18n()` hook |
+| `lib/i18n/flip-financial-labels.ts` | Flat `Record<string, string>` for financial tables (separate file due to size) |
+| `lib/i18n/index.ts` | Re-exports |
+
+Language is stored in `localStorage` (`pdp_lifecycle_language`), defaults to `es`, falls back to browser preference.
+
+## Rule 1: No Hardcoded User-Facing Strings
+
+Every string visible to users MUST come from `useI18n()`. Never write raw text in JSX.
+
+```tsx
+// WRONG
+<Button>Guardar</Button>
+<p>No se encontraron resultados</p>
+
+// CORRECT
+const { t } = useI18n();
+<Button>{t.common.save}</Button>
+<p>{t.supply.kanban.empty}</p>
+```
+
+**Exceptions** (do NOT translate):
+- Brand names: "Vistral", "PropHero", "Value Hero", "DocuSign"
+- Technical identifiers shown to admins: UUIDs, status codes, API paths
+- Units: "€", "m²", "%", "kWh"
+
+## Rule 2: Both Languages Required
+
+When adding a new key, you MUST add it in both `es` and `en` objects simultaneously. The `Translations` interface enforces this at the type level — a missing key in either language is a compile error.
+
+```typescript
+// In the Translations interface — add the type
+propertyDetail: {
+  existingKey: string;
+  newKey: string;  // ← add here
+};
+
+// In the es object — add Spanish value
+newKey: "Texto en español",
+
+// In the en object — add English value
+newKey: "English text",
+```
+
+**Never leave a placeholder like `"TODO"` or copy the Spanish text into the English slot.** If you don't know the English translation, use a clear approximation and add a `// TODO: verify EN translation` comment.
+
+## Rule 3: Key Naming Convention
+
+Keys follow **dot-separated sections** matching domains and UI areas:
+
+```
+t.{domain}.{area}.{concept}
+```
+
+| Prefix | Scope |
+|--------|-------|
+| `t.common.*` | Shared across all domains (save, cancel, loading, yes/no) |
+| `t.nav.*` | Sidebar and top navigation |
+| `t.supply.*` | Supply domain (kanban, property detail, financial estimate) |
+| `t.proyecto.*` | Proyecto domain |
+| `t.settlement.*` | Settlement domain |
+| `t.admin.*` | Admin domain |
+| `t.reno.*` | Reno domain |
+| `t.userMenu.*` | User menu, settings, password |
+| `t.theme.*` / `t.language.*` | Theme and language selectors |
+
+**Rules:**
+- Use `camelCase` for keys: `t.supply.kanban.emptyState`, not `t.supply.kanban.empty_state`
+- Avoid abbreviations: `description` not `desc`, `button` not `btn`
+- Group related keys under a shared parent: `t.supply.form.fieldLabel`, `t.supply.form.fieldPlaceholder`
+
+## Rule 4: Financial Labels Use the Flat Record Pattern
+
+Financial tables use a separate flat `Record<string, string>` in `lib/i18n/flip-financial-labels.ts` because they have hundreds of keys and are accessed by dynamic lookup (not static `t.x.y`).
+
+When adding financial labels:
+1. Add to both `FLIP_FINANCIAL_LABELS_EN` and `FLIP_FINANCIAL_LABELS_ES`
+2. Use the same key in both records
+3. Prefix keys with the table section: `fs_`, `iva_`, `sg_`, `mp_`, `tir_`, `ui_`, `exec_`, `cf_`, `dialog_`
+
+## Rule 5: Cross-Domain Scope
+
+i18n is **not** limited to Supply. It applies to **all domains**:
+- Supply, Proyecto, Settlement, Admin, Reno, Sync, Login
+- Shared components (`components/ui/`, `components/auth/`, `components/user/`)
+- Any new spawned app under `app/(apps)/`
+
+When creating a component in any domain, use `useI18n()`. No domain is exempt.
+
+## Rule 6: Interpolation Pattern
+
+For dynamic values inside translated strings, use placeholder tokens and replace at the call site:
+
+```typescript
+// In translations.ts
+resultCount: "{count} resultados encontrados",
+
+// In component
+t.supply.kanban.resultCount.replace("{count}", String(total))
+```
+
+Keep interpolation simple — one or two placeholders max. If a string needs complex logic, break it into multiple keys.
+
+## Rule 7: Adding a New Domain Section
+
+When a new domain or large feature needs translations:
+
+1. Add a new section to the `Translations` interface
+2. Add the `es` values
+3. Add the `en` values
+4. If the section exceeds ~50 keys, consider extracting to a separate file (like `flip-financial-labels.ts`) and importing into `translations.ts`
+
+## Pre-Coding Checklist (i18n)
+
+```
+[ ] All user-facing strings use t.section.key — no hardcoded text
+[ ] New keys added to BOTH es and en in translations.ts
+[ ] Key names follow camelCase and domain prefix convention
+[ ] Financial labels (if applicable) added to flip-financial-labels.ts in both EN and ES
+[ ] Interpolation uses {placeholder} pattern, not string concatenation
+[ ] Component imports useI18n from lib/i18n
+```

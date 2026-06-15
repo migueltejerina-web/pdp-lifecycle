@@ -1,0 +1,188 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-04-17
+glob: "**/*"
+alwaysApply: false
+description: "PR standards — branch naming, English descriptions, How to test, scope limits"
+---
+
+# PR Standards
+
+## Branch Naming
+
+Format: `type/short-kebab-description`
+
+| Prefix | When to use |
+|--------|-------------|
+| `feat/` | New feature or user-visible capability |
+| `fix/` | Bug fix |
+| `chore/` | Config, tooling, dependencies, refactoring |
+| `hotfix/` | Urgent production fix — PR to `main`, then cherry-pick to `dev` |
+
+Examples:
+- `feat/property-filter-by-date`
+- `fix/kanban-partner-visibility`
+- `chore/eslint-config`
+
+**Never branch directly from `main`.** Branch from `dev`. Only release PRs go `dev → main`.
+
+## PR Descriptions — Language
+
+All PR titles and descriptions MUST be written in English. This is required for:
+- GitHub history readability across the team
+- AI agent tooling that reads git history
+- Consistent audit trail
+
+Commit messages also in English. Code comments may be in Spanish if they explain domain business logic.
+
+## PR Title Format
+
+```
+type(scope): brief description
+```
+
+Examples:
+- `feat(supply): add date range filter to kanban view`
+- `fix(reno): correct completion percentage in sidebar`
+- `chore(ci): add lint step to PR workflow`
+
+## "How to Test" Section — Required
+
+Every PR MUST include a "How to test" section (or "How to verify") with concrete manual steps. No PR should be merged without it.
+
+Good example:
+```
+- [ ] Go to /supply/kanban as a supply_partner user
+- [ ] Open any property card
+- [ ] Expect the "Owners" tab to show the list of owners
+- [ ] Add a new owner — verify it appears immediately without reload
+```
+
+Bad example:
+```
+- [ ] Test the feature
+```
+
+## Scope — Max ~15 Files
+
+A single PR should touch at most ~10–15 files. If a change requires more:
+- Split into a preparatory PR (refactor/types/plumbing) and a follow-up PR (feature)
+- Ask yourself: can the reviewer meaningfully review this in one sitting?
+
+Exceptions: auto-generated files (Supabase types, lock files, migration sequences) don't count toward this limit.
+
+## Protected Zones — Do Not Touch
+
+PRs must explicitly note if they touch protected zones:
+- `supabase/migrations/**` — only add new files, never modify existing
+- `lib/auth/**` — auth providers
+- `app/prophero.css` — design tokens
+
+If a PR touches any of these, the description must explain why it was necessary and confirm it was reviewed by a dev.
+
+## Merge Strategy (CRITICAL — enforced by GitHub repo settings)
+
+| PR type | Merge strategy | Why |
+|---------|---------------|-----|
+| Feature → `dev` | **Squash & merge** | Keeps `dev` history clean — one commit per feature |
+| Release `dev → main` | **Merge commit (ONLY)** | Preserves shared SHAs so `dev` and `main` stay in sync — no phantom divergence |
+| Hotfix → `main` | **Squash & merge** | Minimal footprint on production branch |
+| Hotfix → `dev` | Cherry-pick or separate PR | Ensures `dev` gets the fix too |
+
+### Why merge commit is mandatory for releases
+
+Squash merge creates a **brand-new SHA** on `main` that never exists in `dev`. After a squash merge:
+- GitHub sees `main` and `dev` as permanently diverged.
+- Every subsequent release PR inflates with N phantom commits and duplicate "Files changed".
+- The "X commits behind" counter never reaches 0.
+
+A merge commit preserves the original commit SHAs from `dev`, so after the merge both branches share the same history up to that point. The "X commits behind" counter stays at 0.
+
+### GitHub repo setting (must be configured once — see GITFLOW-SETUP below)
+
+The repo MUST have these merge button settings:
+- **Allow merge commits:** ON (used for `dev → main` releases)
+- **Allow squash merging:** ON (used for feature → `dev` and hotfix → `main`)
+- **Allow rebase merging:** OFF (prevents accidental rebase merges)
+
+## GitFlow Diagram
+
+```
+feature/* ──squash──▶ dev ──merge commit──▶ main ──▶ GitHub Release (v1.2.0)
+                                              │
+                                    hotfix/* ◀─┘ (branch from main)
+                                        │
+                                        ├──squash──▶ main ──▶ GitHub Release (v1.2.1)
+                                        └──cherry-pick──▶ dev
+```
+
+**Key rules:**
+1. Features always target `dev` (squash merge).
+2. Releases always go `dev → main` (merge commit — NEVER squash).
+3. Merging to `main` auto-creates a Git tag + GitHub Release (semver: `v1.0.0`, `v1.1.0`, ...).
+4. Hotfixes branch from `main`, squash-merge back to `main`, then cherry-pick to `dev`.
+5. Never merge `main` back into `dev` — the flow is one-way.
+
+## Versioning — Semver Tags
+
+Tags follow standard [Semantic Versioning](https://semver.org/):
+
+| Change type | Version bump | Example |
+|-------------|-------------|---------|
+| Release PR title starts with `feat` | Minor (`v1.1.0 → v1.2.0`) | New feature shipped |
+| Anything else (fix, chore, hotfix) | Patch (`v1.2.0 → v1.2.1`) | Bug fix or maintenance |
+| Breaking change | Manual major bump | Requires editing the tag before merge |
+
+Tags and GitHub Releases are created automatically by `.github/workflows/create-release.yml` — no manual tagging needed.
+
+## Base Branch
+
+- Feature PRs: base is always `dev`
+- Release PRs: `dev → main` (created automatically by CI, merged manually by tech lead)
+- Hotfix PRs: base is `main`, then cherry-pick to `dev`
+- Never open a PR directly to `main` unless it's a release PR or a hotfix
+
+## Branch Sync — Unidirectional Flow
+
+The flow is strictly **one-way**: `feature → dev → main`.
+
+**Never sync `main` back into `dev`.** After a proper merge commit, `dev` and `main` share the same SHAs. Merging `main` back into `dev` is unnecessary and introduces duplicate history.
+
+The only case where `main` has changes that `dev` doesn't is **hotfixes**. Handle those by cherry-picking the hotfix commit into `dev` (or opening a separate PR to `dev`).
+
+## Branch Sync — Rebase Before You Start (MANDATORY)
+
+Before creating any feature branch, always sync local `dev` with `origin/dev`:
+
+```bash
+git fetch origin
+git checkout dev
+git rebase origin/dev
+```
+
+Before pushing any branch, rebase onto the latest `origin/dev` to minimize conflicts on the PR:
+
+```bash
+git fetch origin
+git rebase origin/dev
+```
+
+**If `git rebase` reports conflicts at either point:**
+- Stop immediately. Do not auto-resolve, do not `git rebase --abort` without telling the user.
+- List the conflicting files (`git status`).
+- Wait for the user to resolve manually and run `git rebase --continue`.
+- Never proceed past a failed rebase.
+
+## Branch Naming — Enforced Format
+
+All branch names MUST start with one of these prefixes:
+
+| Prefix | When to use |
+|--------|-------------|
+| `feat/` | New feature or user-visible capability |
+| `fix/` | Bug fix |
+| `chore/` | Config, tooling, dependencies, refactoring |
+| `hotfix/` | Urgent production fix — PR targets `main` |
+
+**Agents must reject any branch name that does not match this format.** Do not create the branch. Ask the user for a corrected name before continuing.

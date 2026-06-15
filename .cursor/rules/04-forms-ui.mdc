@@ -1,0 +1,41 @@
+---
+version: 2.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: ["**/*form*.tsx", "**/components/ui/**"]
+alwaysApply: false
+description: "Form patterns — react-hook-form + Zod validation + UI components"
+---
+
+# Forms & UI Rules
+
+## Form Stack
+
+react-hook-form + `@hookform/resolvers` + Zod for ALL forms.
+
+## Required Pattern
+
+1. Define Zod schema with `z.object({...})`
+2. Extract type: `type FormValues = z.infer<typeof schema>`
+3. `useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: {...} })`
+4. Use components from `@/components/ui/form`: `Form`, `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormMessage`
+5. Submit button: `disabled={form.formState.isSubmitting}` with loading text
+
+## Zod Patterns
+
+- Required string: `z.string().min(1, "Required")`
+- Email: `z.string().email("Invalid email")`
+- Number range: `z.number().min(0).max(N)`
+- Enum: `z.enum(["a", "b"])`
+- Async validation: `.refine(async (val) => {...})`
+
+## Submit Handler
+
+Always wrap in try/catch: `toast.success()` on success, `console.error('[Form Submit Error]:')` + `toast.error()` on failure. Use `form.setError('root', {...})` for form-level errors.
+
+## UI Patterns
+
+- `cn()` from `@/lib/utils` for class merging
+- `cva()` + `VariantProps` for variant components (see design-system rule)
+- `forwardRef` for components wrapping native elements
+- Radix UI for accessible select, dialog, dropdown

@@ -1,0 +1,99 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-05-06
+glob: ["**/*financial*.{ts,tsx}", "**/*profitability*.{ts,tsx}", "**/financial-pack*.{ts,tsx}", "**/lib/financial-format.ts"]
+alwaysApply: false
+description: "Excel-like number rules for financials — full precision in storage, 2 dp at render, residual on the last unit"
+---
+
+# Financial Number Format Rules
+
+The entire financial pipeline (Supply, Reno, Proyecto financials, profitability tables, deck templates, Airtable sync) MUST follow Excel-like number behaviour.
+
+## The contract
+
+1. **Storage = full precision.** Never round before persisting (`useState`, Supabase, Airtable). `200 / 3` is stored as `66.66666666666667`, not `66.67`.
+2. **Display = 2 decimals.** Always render via the centralised helper, never inline `toFixed(2)` / `Math.round()` for money.
+3. **User input = source of truth.** Whatever the user typed is preserved verbatim:
+   - Edits a UNIT → recompute the TOTAL by summing real (unrounded) units.
+   - Edits the TOTAL → distribute across N units; the **last unit absorbs the residual** so `SUM(units) === total` exactly.
+4. **Invariant.** `SUM(unit_real_values) === total_real_value` always holds in state, no matter how the displayed numbers look (`66.67 + 66.67 + 66.67 = 200.01` visually but `66.6̅ × 3 = 200` in storage).
+
+## The single source of truth
+
+Use `lib/financial-format.ts`. **Never copy/paste a similar helper into a component.**
+
+```ts
+import {
+  displayValue,           // render-only: "66.67" from 66.66666666666667
+  splitTotalAcrossUnits,  // distribute: 200 → [66.6̅, 66.6̅, 66.6̅] sum exactly 200
+  sumUnitsToTotal,        // aggregate: full-precision sum, no intermediate rounding
+  parseFinancialInput,    // user input → number, no rounding
+  formatMoneyDisplay2dp,  // input idle (blur): "1.234,56" Spanish, thousands sep
+  formatMoneyEditFull,    // input focused: "1234,5678" Spanish, all decimals
+} from "@/lib/financial-format";
+```
+
+## Input cells: blur vs focus
+
+Money cells in editable tables MUST behave like Excel:
+
+- **Blur (idle)**: show `formatMoneyDisplay2dp(realValue)` → `"1.234,56"`. Two decimals, thousands separator.
+- **Focus (editing)**: show `formatMoneyEditFull(realValue)` → `"1234,5678"`. All decimals so the user can read and modify the precise stored value.
+- **On blur, persist `parseFinancialInput(rawDraft)` at full precision** (no round). If the user opened a cell with `"19833,333333333332"` and didn't touch it, the stored value stays at full precision.
+
+```tsx
+const isFocused = focusedCell?.rowKey === rowKey && focusedCell?.col === col;
+const idle = formatMoneyDisplay2dp(real);
+const editSeed = formatMoneyEditFull(real);
+const value = isFocused ? (draft[key] ?? editSeed) : idle;
+```
+
+## DO
+
+```tsx
+// DISTRIBUTE total → units (Excel-like, residual on last unit)
+const parts = splitTotalAcrossUnits(userTotal, n);
+setEditedUnits((prev) => ({ ...prev, [rowKey]: parts.map(String) }));
+
+// AGGREGATE units → total (no rounding)
+const total = sumUnitsToTotal(units);
+setEditedTotals((prev) => ({ ...prev, [rowKey]: String(total) }));
+
+// RENDER only — never feed displayValue() back into a calculation
+// DISPLAY ONLY — do not use this value for calculations
+<td>{displayValue(unit)}</td>
+```
+
+## DO NOT
+
+```tsx
+// WRONG — rounds before storing → corrupts the invariant
+const perUnit = Math.round(total / n);
+setEditedUnits(Array(n).fill(String(perUnit)));
+
+// WRONG — sums rounded units → 66.67 × 3 = 200.01 but the user typed 200
+const total = units.map((u) => Math.round(u)).reduce((a, b) => a + b, 0);
+
+// WRONG — render-only formatter used for calculation
+const next = parseFloat(displayValue(value)) + 1;
+```
+
+## Comments at display sites
+
+When you call `displayValue()`, leave a marker so it's obvious downstream that
+the value lost precision intentionally:
+
+```tsx
+// DISPLAY ONLY — do not use this value for calculations
+{displayValue(unit.realValue)}
+```
+
+## Why this matters (PM-friendly framing)
+
+When a PM types `200` in the TOTAL with 3 units, the system splits it into the 3 cells. Without these rules, each cell saves `66.67` and on next render the total reads `200.01` — the value the PM typed is gone. With these rules the TOTAL stays at `200` exactly, and each cell still shows `66.67` for readability.
+
+## When you cannot follow this rule
+
+Some legacy storage formats (e.g. `editedUnits` strings inside `flip-profitability-table.tsx`) used 2 dp Spanish strings (`"66,67"`). New code MUST use full-precision storage; existing storage is grandfathered until those callers can migrate. If you need to add a new helper to bridge legacy → full-precision, put it in `lib/financial-format.ts`, not in the component.

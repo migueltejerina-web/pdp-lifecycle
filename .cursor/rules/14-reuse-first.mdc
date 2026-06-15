@@ -1,0 +1,182 @@
+---
+version: 2.0
+owner: Vistral Lab
+lastUpdated: 2026-05-08
+glob: "**/*.{ts,tsx}"
+alwaysApply: true
+description: "Reuse-first — check types, utils, and constants before creating new ones"
+---
+
+# Reuse-First: Types · Utils · Constants
+
+**Before writing any new type, function, or constant, you MUST search the relevant domain files first.**
+If the concept already exists — even partially — extend or adapt it instead of duplicating it.
+
+---
+
+## 1. Types — always in a domain types file
+
+**Rule:** TypeScript interfaces and type aliases belong in a `*.types.ts` file scoped to their domain.
+Do NOT declare types inline inside service files, components, or hooks unless they are single-use and private to that file.
+
+### API types vs Domain types (dual-type pattern)
+
+Define two parallel interfaces for every API resource: one for the raw wire format (Supabase/API response) and one for the app-side model.
+
+```typescript
+// Raw Supabase shape — snake_case, I-prefix
+export interface IProperty {
+  id: number;
+  bedroom_count: number;
+  total_price: number;
+  supply_status: string;
+}
+
+// App model — camelCase, no prefix
+export interface Property {
+  id: number;
+  bedroomCount: number;
+  totalPrice: number;
+  supplyStatus: string;
+}
+```
+
+Transform between the two in a dedicated `.utils.ts` or service file — **never inline in components or hooks**.
+
+### Enums and const-as-enum naming
+
+Use TypeScript `enum` or `as const` objects for domain status codes and stable identifiers.
+
+**PascalCase** — when the const is referenced in `interface` or `type` definitions (acts as a type discriminator):
+
+```typescript
+export const PropertyStatus = {
+  Draft: 'draft',
+  Pending: 'pending',
+  Approved: 'approved',
+} as const;
+export type PropertyStatus = (typeof PropertyStatus)[keyof typeof PropertyStatus];
+```
+
+**SCREAMING_SNAKE_CASE** — for pure runtime configuration values not used in type definitions:
+
+```typescript
+export const KANBAN_COLUMN_WIDTHS = {
+  narrow: 280,
+  normal: 320,
+} as const;
+```
+
+### Default values and lookup tables
+
+Group defaults in a `*_DEFAULTS` constant:
+
+```typescript
+export const PROPERTY_FORM_DEFAULTS: Partial<PropertyFormData> = {
+  status: PropertyStatus.Draft,
+  bedrooms: 1,
+};
+```
+
+Use `Record<Enum, T>` for enum-to-label mappings to ensure exhaustiveness:
+
+```typescript
+export const PROPERTY_STATUS_LABELS: Record<PropertyStatus, string> = {
+  [PropertyStatus.Draft]: 'Borrador',
+  [PropertyStatus.Pending]: 'Pendiente',
+  [PropertyStatus.Approved]: 'Aprobado',
+};
+```
+
+### Where to look first
+
+| Domain | Types file |
+|--------|------------|
+| Supply / properties | `lib/supply-property-storage.ts` (PropertyType, etc.) |
+| Supply readiness | `lib/supply-readiness-types.ts` |
+| Public project docs | `lib/public-project-documents-types.ts` |
+| Financials | Check `lib/project-financial-*.ts` before creating |
+| Settlement | Check `lib/settlement-*.ts` before creating |
+| Any domain | Search `lib/**/*.types.ts` and `lib/*-types.ts` first |
+
+**Decision checklist:**
+1. Does a types file exist for this domain? → Add the type there.
+2. Does no types file exist yet but there are ≥2 related types? → Create `lib/{domain}.types.ts`.
+3. Is this type truly only used in one file and will never leave it? → Keep it inline (document why).
+
+---
+
+## 2. Utils — domain utilities under `lib/`
+
+**Rule:** Reusable functions belong in the domain's existing service or util file, not inlined into components or hooks.
+
+### Search before writing
+
+Before implementing a helper function:
+- Check `lib/utils.ts` for general-purpose helpers
+- Check `lib/{domain}-supabase.ts` or `lib/{domain}-service.ts` for domain ops
+- Check existing `lib/*.ts` files in the same domain cluster
+
+### Utility file naming
+
+```
+lib/utils.ts                        → general-purpose (dates, strings, math)
+lib/supply-property-service.ts      → supply domain business logic
+lib/supply-settlement-supabase.ts   → settlement Supabase calls
+lib/{domain}.utils.ts               → new util file only if domain has no service file yet
+```
+
+**When a util needs to handle a new case:** modify the existing function with an optional parameter — do NOT create a second function with a slightly different name.
+
+---
+
+## 3. Constants — in domain files, not scattered inline
+
+| Scope | Location |
+|-------|----------|
+| Cross-domain (breakpoints, property types, spacing) | `lib/constants.ts` |
+| Kanban status labels / column config | `lib/{domain}-kanban-config.ts` |
+| Domain-specific config | `lib/{domain}.domain.ts` or nearest domain file |
+
+No magic strings inside components. Every repeated literal must be an exported constant.
+
+---
+
+## 4. Pre-coding checklist (MANDATORY before creating anything new)
+
+```
+[ ] Searched lib/**/*.types.ts and lib/*-types.ts for existing types
+[ ] Searched lib/utils.ts and lib/{domain}*.ts for existing utilities
+[ ] Searched lib/constants.ts and lib/*-config.ts for existing constants
+[ ] If found: extending/importing existing definitions
+[ ] If not found: creating in the correct domain file (not inline)
+[ ] New types go to *.types.ts — dual-type pattern (IFoo / Foo) for API resources
+[ ] Enum-style consts named PascalCase; config consts named SCREAMING_SNAKE_CASE
+[ ] Lookup tables use Record<Enum, T> for exhaustiveness
+```
+
+---
+
+## 5. When to create a new file vs add to existing
+
+| Situation | Action |
+|-----------|--------|
+| Domain has a `*.types.ts` file | Add types there |
+| Domain has NO `*.types.ts` file and you're adding ≥2 types | Create `lib/{domain}.types.ts` |
+| Utility fits an existing service file | Add function there |
+| Utility is cross-domain (date, string, math) | Add to `lib/utils.ts` |
+| Constant is domain-specific | Add to that domain's config file |
+| Constant is shared across ≥2 domains | Add to `lib/constants.ts` |
+
+---
+
+## 6. Re-export pattern (backward compatibility)
+
+When extracting types or functions to a new file, always re-export from the original location so existing imports don't break:
+
+```typescript
+// lib/supply-property-supabase.ts — after extracting types
+export type { PropertyType, PropertyInsert } from './supply-property-storage';
+```
+
+This keeps PRs small and avoids breaking changes across the codebase.

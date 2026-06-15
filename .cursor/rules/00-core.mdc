@@ -1,0 +1,115 @@
+---
+version: 3.0
+owner: Vistral Lab
+lastUpdated: 2026-04-15
+glob: "**/*"
+alwaysApply: true
+description: "Critical guardrails — security, protected zones, planning mandate, domain boundaries, PM communication"
+---
+
+# Vistral Lab - Core Guardrails
+
+## SECURITY (CRITICAL)
+
+**NEVER:**
+- Paste real secrets — use placeholders (`sk_live_PLACEHOLDER`)
+- Read `.env*`, `*.pem`, `*.key`, or credentials files
+- Commit service role keys, even in `.env.example`
+- Expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code
+- Use `NEXT_PUBLIC_` prefix for API keys, service tokens, or anything server-only
+- Use `supabase.auth.getSession()` in API routes — always use `supabase.auth.getUser()` (getSession trusts the client cookie; getUser re-validates with the server)
+
+**Service role key ALLOWED only in:**
+- `app/api/**/*.ts` (route handlers)
+- `lib/supabase/server.ts` (server client)
+
+**FORBIDDEN in:** `"use client"` components, `components/`, `hooks/`, client-side `page.tsx`
+
+**Environment variables:** Always read from `lib/config/environment.ts`, not `process.env` directly.
+
+## DATABASE SECURITY (CRITICAL)
+
+**RLS is mandatory.** Every new table MUST have Row Level Security enabled and at least one policy. A table with RLS disabled is readable by anyone with the anon key.
+
+```sql
+-- Required boilerplate for every new table
+ALTER TABLE your_table ENABLE ROW LEVEL SECURITY;
+-- Then add at least one policy before the migration is done
+```
+
+**`search_path` in functions.** Any `SECURITY DEFINER` function must set `search_path` to prevent schema injection:
+
+```sql
+CREATE OR REPLACE FUNCTION my_function()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp  -- REQUIRED
+AS $$
+BEGIN
+  -- ...
+END;
+$$;
+```
+
+**Signed URLs for private files.** Never expose public Supabase Storage URLs for user documents, contracts, or sensitive assets. Use signed URLs with short expiry:
+
+```typescript
+// WRONG — exposes file to anyone with the URL
+const { data: { publicUrl } } = supabase.storage.from('contracts').getPublicUrl(path)
+
+// CORRECT — signed URL expires in 1 hour
+const { data, error } = await supabase.storage
+  .from('contracts')
+  .createSignedUrl(path, 3600)
+```
+
+The `contract-documents` bucket and any bucket containing user files MUST use signed URLs.
+
+## PROTECTED ZONES (do not modify unless explicitly asked)
+
+- `supabase/migrations/**` — only add new, never modify existing
+- `lib/auth/**` — auth providers (SupabaseAuthProvider, AppAuthProvider)
+- `app/prophero.css` — design tokens
+- `.cursorignore` — indexing exclusions
+
+## PLANNING WORKFLOW (MANDATORY)
+
+**Before coding:** Summarize intent, list steps, identify risks.
+**After coding:** Summarize changes, list risks introduced, suggest test cases.
+
+## DOMAIN BOUNDARIES
+
+Domains: `app/supply/`, `app/admin/`, `app/reno/`, `app/login/` (shared).
+
+When working on one domain, do NOT touch other domains unless explicitly asked. Shared resources (`lib/`, `components/ui/`, `hooks/`) are OK.
+
+## GSD + PARTY MODE COEXISTENCE
+
+Party Modes (HYPERFOCUS, MAESTRO, CREATIVE INTELLIGENCE, RAPID PROTOTYPE, Execute User Story, Incremental Changes, Code Reference) are valid entry points for code changes. They satisfy the GSD workflow requirement — no need to invoke `/gsd-plan-phase` or `/gsd-new-project` when a Party Mode is active.
+
+When a Party Mode reaches an implementation step, it can optionally hand off to GSD commands (`/gsd-quick`, `/gsd-execute-phase`, `/gsd-debug`) for execution tracking, but this is not required.
+
+## PM COMMUNICATION LAYER
+
+The primary users of this codebase are Product Managers doing vibe coding. When communicating:
+
+**Always translate technical impact to business language:**
+- Instead of "this changes the RLS policy" → "this changes who can see/edit this data and which user roles are affected"
+- Instead of "this requires a migration" → "this changes the database structure — needs dev review before it goes live, affects all users"
+- Instead of "this breaks the build" → "this prevents deployment — nothing ships until it's fixed"
+- Instead of "this adds a new API route" → "this creates a new backend endpoint that [feature] needs to work"
+
+**When explaining pros/cons of a change, frame as:**
+- User impact (who is affected, what changes in their experience)
+- Risk level (low = safe to ship, medium = test carefully, high = needs dev review)
+- Time to revert (instant via Vercel rollback, or requires dev intervention)
+- Scope (just this page, this whole domain, or cross-domain)
+
+**Redirect technical decisions to dev when:**
+- Database schema changes (migrations, new tables, column changes)
+- Auth/permission changes (roles, RLS policies, provider config)
+- Infrastructure changes (env vars, deployment config, third-party integrations)
+- Performance-critical changes (query optimization, caching, indexing)
+
+For these cases, say: "This change affects [business area]. I recommend flagging this for dev review before proceeding. Here's what to share with them: [technical summary]."

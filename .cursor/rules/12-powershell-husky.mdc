@@ -1,0 +1,58 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-05-05
+glob: "**/*"
+alwaysApply: true
+description: "PowerShell + Husky workaround — auto-detect PowerShell and add --no-verify to git commit/push"
+---
+
+# PowerShell + Husky Compatibility
+
+Husky git hooks use `#!/bin/sh` shebangs that PowerShell on Windows cannot execute natively.
+This causes `spawn UNKNOWN` or `command not found` errors on `git commit` and `git push`.
+
+## Detection
+
+Before any `git commit` or `git push`, check the shell environment:
+
+```bash
+echo $PSVersionTable 2>$null
+```
+
+If the output contains `PSVersion` (or the OS info from the user says "Windows" / "powershell"),
+the agent is running in PowerShell.
+
+Alternatively, check the OS from the user info metadata — if `Shell: powershell` or `OS Version: Windows`,
+apply the PowerShell path.
+
+## When PowerShell is detected
+
+Add `--no-verify` to **both** `git commit` and `git push` commands:
+
+```powershell
+git commit --no-verify -m "message"
+git push --no-verify origin branch-name
+```
+
+**Why this is safe for our workflow:**
+- Pre-commit hook runs `npx tsc --noEmit` (type-check)
+- Commit-msg hook runs `commitlint` (conventional commit format)
+- Pre-push hook runs `npm run lint`
+- All three checks also run in CI on every PR — nothing reaches `dev` without passing them
+- Skipping locally on PowerShell avoids a blocking error while CI still catches issues
+
+## When PowerShell is NOT detected (macOS / Linux / Git Bash)
+
+Use normal git commands **without** `--no-verify`. Hooks run as expected.
+
+## Preferred long-term fix
+
+If the PM wants hooks to work natively on Windows, suggest configuring Git to use Git Bash for hooks:
+
+```powershell
+git config core.hooksPath .husky
+git config core.shell "C:/Program Files/Git/bin/sh.exe"
+```
+
+This is optional and should only be suggested if the PM asks about it.

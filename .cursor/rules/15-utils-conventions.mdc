@@ -1,0 +1,108 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-05-08
+glob: "**/*.{ts,tsx}"
+alwaysApply: false
+description: "Utility function conventions — pure functions, null-safety, transformers, SSR guards"
+---
+
+# Utility Function Conventions
+
+## Core Principles
+
+- Utility functions must be **pure** — no side effects, no module-level mutable state.
+- Use **named exports** only — no default exports from utility files.
+- Functions must be **null-safe** with sensible fallbacks — never throw for missing or empty input.
+- Document non-obvious functions with JSDoc (`@param`, `@returns`, `@example`).
+
+## File Organisation
+
+| Location | Purpose |
+|----------|---------|
+| `lib/utils.ts` | App-level utilities — numbers, dates, strings, formatting |
+| `lib/{domain}-service.ts` | Domain business logic and transformers |
+| `lib/{domain}-supabase.ts` | Supabase data access for that domain |
+| `components/{ComponentName}/{ComponentName}.utils.ts` | Utilities scoped to a single component |
+
+### Component-scoped utils (MANDATORY)
+
+If a utility function is **only** used by a single component, place it in a co-located `{ComponentName}.utils.ts` file — never inline in the `.tsx` file.
+
+## Class Merging
+
+Use `cn()` from `@/lib/utils` for all conditional Tailwind class merging. Never concatenate class strings manually.
+
+```typescript
+import { cn } from '@/lib/utils';
+
+<div className={cn('base-class', isActive && 'active-class', className)} />
+```
+
+## Formatting Helpers
+
+Formatting functions must return a fallback string (`—`) instead of throwing on invalid input.
+
+```typescript
+export function formatCurrency(value: number | null, currency = 'EUR'): string {
+  if (value == null) return '—';
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency }).format(value);
+}
+
+export function formatDate(value: string | null): string {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('es-ES').format(new Date(value));
+}
+```
+
+## Data Transformers
+
+Transform between snake_case Supabase shapes and camelCase app models in dedicated transformer functions — **not inline in components or hooks**.
+
+```typescript
+// lib/supply-property-service.ts
+export function toProperty(raw: IProperty): Property {
+  return {
+    id: raw.id,
+    bedroomCount: raw.bedroom_count,
+    totalPrice: raw.total_price,
+    supplyStatus: raw.supply_status,
+  };
+}
+```
+
+Transformer functions are named `to{ModelName}` and live in the domain's service file or a co-located `.utils.ts`.
+
+## Validation Helpers
+
+Validation functions return `boolean` — they do not throw or mutate. For complex validation, prefer Zod schemas in the relevant domain module.
+
+```typescript
+export function isValidUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+export function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+```
+
+## SSR / Browser Safety
+
+Guard all `window` and `document` accesses to avoid SSR/build-time errors in Next.js.
+
+```typescript
+export function getStoredLocale(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('vistral::language');
+}
+```
+
+## Naming Conventions
+
+| Pattern | Convention | Example |
+|---------|-----------|---------|
+| Predicate (returns boolean) | `is` / `has` / `can` prefix | `isValidUuid`, `hasRole` |
+| Transformer (converts shape) | `to` prefix | `toProperty`, `toSettlementCase` |
+| Formatter (returns display string) | `format` prefix | `formatCurrency`, `formatDate` |
+| Getter (reads/derives a value) | `get` prefix | `getStatusLabel`, `getInitials` |

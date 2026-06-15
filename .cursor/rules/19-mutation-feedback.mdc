@@ -1,0 +1,104 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-05-08
+glob: "**/*.tsx"
+alwaysApply: false
+description: "Mutation feedback — toast is required on every write operation (create, update, delete)"
+---
+
+# Mutation Feedback (MANDATORY)
+
+Every operation that **creates, updates, or deletes** data must show toast feedback on both **success** and **error**. No silent mutations.
+
+## How
+
+1. Import `toast` from `sonner`.
+2. Wire toasts at the **call site** (inside the submit handler or mutation callback), not deep inside utility functions.
+3. Show a `toast.success` on success and a `toast.error` on failure — both are required.
+
+## Standard Pattern
+
+```typescript
+// GOOD — both outcomes covered
+import { toast } from 'sonner';
+
+async function handleSave(data: FormValues) {
+  try {
+    await saveProperty(data);
+    toast.success('Propiedad guardada correctamente');
+  } catch (error) {
+    console.error('[Save Property Error]:', error);
+    toast.error('Error al guardar la propiedad');
+  }
+}
+```
+
+## With Loading State
+
+```typescript
+const [isSaving, setIsSaving] = useState(false);
+
+async function handleSave(data: FormValues) {
+  setIsSaving(true);
+  try {
+    await saveProperty(data);
+    toast.success('Propiedad guardada correctamente');
+  } catch (error) {
+    console.error('[Save Property Error]:', error);
+    toast.error('Error al guardar la propiedad');
+  } finally {
+    setIsSaving(false);
+  }
+}
+
+<Button disabled={isSaving}>
+  {isSaving ? 'Guardando…' : 'Guardar'}
+</Button>
+```
+
+## With Backend Error Message
+
+When the Supabase or API error includes a useful message, surface it in the toast description:
+
+```typescript
+} catch (error) {
+  const message = error instanceof Error ? error.message : undefined;
+  console.error('[Save Property Error]:', error);
+  toast.error('Error al guardar la propiedad', {
+    description: message,
+  });
+}
+```
+
+## Supabase Pattern
+
+Supabase returns `{ data, error }` — check the error before assuming success:
+
+```typescript
+const { data, error } = await supabase
+  .from('properties')
+  .update(payload)
+  .eq('id', id);
+
+if (error) {
+  console.error('[Update Property Error]:', error);
+  toast.error('Error al actualizar la propiedad', { description: error.message });
+  return;
+}
+
+toast.success('Propiedad actualizada');
+```
+
+## Rules
+
+- `toast.error` must always include a `title`. Include a `description` when a backend error message is available.
+- `toast.success` must always include a `title`. A `description` is optional.
+- Never use `alert()`, `window.confirm()`, `console.log`, or inline text banners as substitutes for toast feedback.
+- Never show a success toast if the operation may have failed (always check `error` from Supabase before toasting success).
+
+## What Counts as a Mutation
+
+Any of: Supabase `.insert()`, `.update()`, `.upsert()`, `.delete()`, API route `POST/PATCH/PUT/DELETE`, file upload/delete, or any function that persists data.
+
+Read-only operations (`SELECT`, `.select()`, GET requests) do **not** require success toasts, but must still handle and toast errors.

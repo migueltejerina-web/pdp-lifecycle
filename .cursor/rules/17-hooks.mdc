@@ -1,0 +1,90 @@
+---
+version: 1.0
+owner: Vistral Lab
+lastUpdated: 2026-05-08
+glob: "**/use*.{ts,tsx},**/*.hooks.ts"
+alwaysApply: false
+description: "React hook conventions — naming, return types, memoization, async, file location"
+---
+
+# React Hook Conventions
+
+## Naming and Signature
+
+- Always prefix with `use`; name must describe the specific concern.
+- Single responsibility — one hook per concern.
+- Named export function (not default export).
+- Define an **explicit return type alias**.
+
+```typescript
+export type UsePropertyReturn = {
+  property: Property | undefined;
+  isLoading: boolean;
+  error: Error | null;
+};
+
+export function useProperty(id: string): UsePropertyReturn {
+  // ...
+}
+```
+
+## Memoization
+
+- Wrap callbacks returned to consumers in `useCallback` with a complete dependency array.
+- Wrap derived objects placed in other dependency arrays in `useMemo`.
+- Never use `JSON.stringify()` for dependency tracking — it causes unstable re-renders.
+
+```typescript
+const handleSave = useCallback(async (data: FormData) => {
+  await saveProperty(data);
+}, [saveProperty]);
+```
+
+## Effects and Cleanup
+
+- Every `useEffect` must return a cleanup function if it sets up a subscription, timer, or listener.
+- One effect per concern — do not combine unrelated side effects in a single `useEffect`.
+- Never suppress `react-hooks/exhaustive-deps` — fix the root cause instead.
+
+## Abortable Async
+
+Use `useRef<AbortController>` for async operations that should be cancelled on unmount or re-run.
+
+```typescript
+const abortRef = useRef<AbortController | null>(null);
+
+useEffect(() => {
+  abortRef.current?.abort();
+  abortRef.current = new AbortController();
+
+  fetchData(abortRef.current.signal).then(setData);
+
+  return () => abortRef.current?.abort();
+}, [id]);
+```
+
+## Data Fetching Hooks
+
+- Always return `{ data, isLoading, error }` as the standard shape.
+- Use **Supabase** for server data fetching. Structure the hook as: fetch on mount (or on dependency change), store in state, expose loading + error.
+- Use **query key factories** if React Query is adopted in a domain:
+
+```typescript
+export const propertyKeys = {
+  all: ['properties'] as const,
+  lists: () => [...propertyKeys.all, 'list'] as const,
+  list: (params?: GetPropertiesParams) => [...propertyKeys.lists(), params] as const,
+  detail: (id: string) => [...propertyKeys.all, 'detail', id] as const,
+};
+```
+
+## File Location
+
+| Hook type | Location |
+|-----------|----------|
+| Scoped to a single component | Co-located in `{ComponentName}/` directory |
+| Domain data fetching | `hooks/use{Domain}{Resource}.ts` |
+| Shared app-wide hook (auth, i18n, theme) | `hooks/use{Concern}.ts` |
+| Context consumer hook | `lib/auth/` or provider directory |
+
+Do NOT place hook logic inside `.tsx` component files if the hook has more than ~20 lines — extract to its own `use{Name}.ts` file.
