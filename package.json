@@ -12,7 +12,7 @@
     "start": "next start --port 3005",
     "lint": "eslint",
     "test": "vitest run",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
