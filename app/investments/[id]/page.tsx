@@ -128,7 +128,7 @@ export default function InvestmentDetailPage() {
       fetch(`/api/investments/${investmentId}/escrituras`)
         .then((response) => response.json())
         .then((data: HubSpotEscriturasInfo & { configured?: boolean }) => {
-          if (cancelled || !data.configured) return;
+          if (cancelled || !data.steps) return;
           setEscriturasState(data);
         })
         .catch(() => {});
