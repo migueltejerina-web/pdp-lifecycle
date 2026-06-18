@@ -88,6 +88,16 @@ export const config = {
     username: process.env.PORTFOLIO_API_USERNAME || '',
     password: process.env.PORTFOLIO_API_PASSWORD || '',
   },
+  /**
+   * Google Form — poder notarial online (server-only).
+   * `entryMapJson` maps HubSpot prefill keys → Google Form entry IDs (e.g. entry.123456789).
+   */
+  poderNotarialForm: {
+    url: process.env.GOOGLE_FORM_PODER_NOTARIAL_URL || '',
+    entryMapJson: process.env.GOOGLE_FORM_PODER_NOTARIAL_ENTRY_MAP || '',
+    /** Optional entry IDs for questions not mapped via HubSpot prefill (buyingAlone, etc.). */
+    extraEntryMapJson: process.env.GOOGLE_FORM_PODER_NOTARIAL_EXTRA_ENTRY_MAP || '',
+  },
 };
 
 /** True when Portfolio API basic-auth credentials are configured. */

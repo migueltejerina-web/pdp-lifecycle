@@ -5,6 +5,7 @@ import { Clock, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SummaryCard } from "@/types/lifecycle";
 import { InvestmentFileUploadCta, isUploadAction } from "./InvestmentFileUploadCta";
+import { PoderNotarialStartCta } from "./PoderNotarialStartCta";
 import { useCountdownFromExpiry } from "../hooks/use-countdown-from-expiry";
 import type { PropertyMock } from "../mock/property.mock";
 import { handleLifecycleCtaAction } from "../utils/lifecycle-cta";
@@ -195,10 +196,22 @@ export function OperationSummaryCard({
                 onUploaded={onUploadComplete}
                 variant="sidebar"
               />
+            ) : summaryCard.primaryCtaAction === "start_notarial" ? (
+              <PoderNotarialStartCta
+                investmentId={investmentId}
+                label={summaryCard.primaryCtaLabel}
+                variant="sidebar"
+                onComplete={onUploadComplete}
+              />
             ) : (
               <button
                 type="button"
-                onClick={() => handleLifecycleCtaAction(summaryCard.primaryCtaAction!)}
+                onClick={() =>
+                  handleLifecycleCtaAction(
+                    summaryCard.primaryCtaAction!,
+                    summaryCard.primaryCtaUrl
+                  )
+                }
                 className="mt-5 flex h-10 w-full items-center justify-center rounded-full bg-[var(--vistral-semantic-interactive-brand-default)] text-sm font-medium text-white transition-opacity hover:opacity-90"
               >
                 {summaryCard.primaryCtaLabel}

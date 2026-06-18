@@ -12,6 +12,9 @@ import type {
 import { useCountdownFromExpiry } from "../hooks/use-countdown-from-expiry";
 import { handleLifecycleCtaClick } from "../utils/lifecycle-cta";
 import { getUploadEndpoint, renderStepUploadCta } from "./InvestmentFileUploadCta";
+import { PoderNotarialDeclineCta } from "./PoderNotarialDeclineCta";
+import { PoderNotarialResumeCta } from "./PoderNotarialResumeCta";
+import { PoderNotarialStartCta } from "./PoderNotarialStartCta";
 
 interface StepItemProps {
   step: EnrichedStep;
@@ -21,7 +24,7 @@ interface StepItemProps {
   onUploadComplete?: () => void;
 }
 
-function StepDot({ status }: { status: StepStatus }) {
+function StepDot({ status, isRecommended }: { status: StepStatus; isRecommended?: boolean }) {
   if (status === "completed") {
     return (
       <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#2050F6]">
@@ -31,15 +34,37 @@ function StepDot({ status }: { status: StepStatus }) {
   }
 
   if (status === "in_progress") {
+    if (isRecommended) {
+      return (
+        <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#EEF4FF]">
+          <span aria-hidden className="size-2 rounded-full bg-[#2050F6]" />
+        </div>
+      );
+    }
+
     return (
-      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#EEF4FF]">
-        <span aria-hidden className="size-2 rounded-full bg-[#2050F6]" />
-      </div>
+      <span
+        aria-hidden
+        className="size-4 shrink-0 rounded-full border-2 border-[#2050F6] bg-[var(--vistral-semantic-bg-default)]"
+      />
     );
   }
 
   return (
     <span aria-hidden className="size-4 shrink-0 rounded-full bg-[#D4D4D8]" />
+  );
+}
+
+function StepOwnerBadge({ owner }: { owner?: EnrichedStep["owner"] }) {
+  if (owner !== "prophero") return null;
+
+  return (
+    <span
+      title="Lo gestiona el equipo PropHero"
+      className="inline-flex shrink-0 items-center rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#162EB7]"
+    >
+      PropHero
+    </span>
   );
 }
 
@@ -78,12 +103,15 @@ function StepCountdownBadge({
 function resolveCtaVariant(cta: StepCTA, isCompleted: boolean): StepCTAVariant {
   if (cta.variant) return cta.variant;
   if (isCompleted) return "secondary";
-  if (cta.action === "mark_complete") return "title_link";
+  if (cta.action === "mark_complete" || cta.action === "decline_poa") return "title_link";
   if (
     cta.action === "upload_file" ||
     cta.action === "upload_contract" ||
     cta.action === "upload_arras_receipt" ||
     cta.action === "upload_exchange_fee_receipt" ||
+    cta.action === "upload_company_deed" ||
+    cta.action === "upload_final_payment_proof" ||
+    cta.action === "upload_fein_signature_doc" ||
     cta.action === "open_mail" ||
     cta.action === "view_payment" ||
     cta.action === "open_document" ||
@@ -144,16 +172,11 @@ function StepPrimaryCta({ cta }: { cta: StepCTA }) {
 }
 
 function StepCompletedLinkCta({ cta }: { cta: StepCTA }) {
-  const isReceiptLink = cta.action === "view_file";
-
   return (
     <button
       type="button"
       onClick={() => handleLifecycleCtaClick(cta)}
-      className={cn(
-        "text-left text-xs font-medium leading-5 transition-opacity hover:opacity-80",
-        isReceiptLink ? "text-[#16A34A]" : "text-[#162EB7]"
-      )}
+      className="text-left text-xs font-medium leading-5 text-[#162EB7] transition-opacity hover:opacity-80"
     >
       {cta.label}
     </button>
@@ -204,6 +227,8 @@ export function StepItem({
 }: StepItemProps) {
   const isCompleted = step.status === "completed";
   const isInProgress = step.status === "in_progress";
+  const isRecommended = step.isRecommended === true;
+  const showActiveUi = isInProgress;
   const countdown = useCountdownFromExpiry(
     step.countdownExpiresAt,
     step.countdownHours ?? 0,
@@ -214,7 +239,7 @@ export function StepItem({
     step.countdown === true &&
     step.countdownHours !== undefined &&
     step.countdownMinutes !== undefined;
-  const showCopy = (isCompleted || isInProgress) && shouldShowCopy(step);
+  const showCopy = (isCompleted || showActiveUi) && shouldShowCopy(step);
   const isCompletedPaymentCopy =
     isCompleted &&
     (step.id === "pagar_arras" || step.id === "pagar_fee_prophero") &&
@@ -227,7 +252,7 @@ export function StepItem({
   return (
     <div className="flex gap-2">
       <div className="flex w-5 shrink-0 flex-col items-center self-stretch pt-0.5">
-        <StepDot status={step.status} />
+        <StepDot status={step.status} isRecommended={isRecommended} />
         {!isLast ? (
           <span
             aria-hidden
@@ -251,20 +276,20 @@ export function StepItem({
           <div
             className={cn(
               "min-w-0",
-              isInProgress && titleLinkCtas.length > 0
+              showActiveUi && titleLinkCtas.length > 0
                 ? "flex flex-1 items-start justify-between gap-3"
                 : "w-full"
             )}
           >
-            <div className="flex min-w-0 items-center gap-2">
-              {isInProgress && step.id === "firma_contrato" ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {showActiveUi && step.id === "firma_contrato" ? (
                 <FileSignature
                   className="size-4 shrink-0 text-[var(--vistral-semantic-icon-brand)]"
                   strokeWidth={1.75}
                   aria-hidden
                 />
               ) : null}
-              {isInProgress &&
+              {showActiveUi &&
               (step.id === "pagar_arras" || step.id === "pagar_fee_prophero") ? (
                 <Link2
                   className="size-4 shrink-0 text-[var(--vistral-semantic-icon-brand)]"
@@ -275,22 +300,33 @@ export function StepItem({
               <p
                 className={cn(
                   "text-base leading-6 tracking-[-0.02em]",
-                  isInProgress
+                  showActiveUi && isRecommended
                     ? "font-semibold text-[var(--vistral-semantic-text-primary)]"
-                    : isCompleted
+                    : showActiveUi
                       ? "font-medium text-[var(--vistral-semantic-text-primary)]"
-                      : "font-medium text-[var(--vistral-semantic-text-secondary)]"
+                      : isCompleted
+                        ? "font-medium text-[var(--vistral-semantic-text-primary)]"
+                        : "font-medium text-[var(--vistral-semantic-text-secondary)]"
                 )}
               >
                 {step.title}
               </p>
+              <StepOwnerBadge owner={step.owner} />
             </div>
 
-            {isInProgress && titleLinkCtas.length > 0 ? (
+            {showActiveUi && titleLinkCtas.length > 0 ? (
               <div className="flex shrink-0 flex-col items-end gap-1">
-                {titleLinkCtas.map((cta) => (
-                  <StepTitleLinkCta key={`${step.id}-${cta.action}-${cta.label}`} cta={cta} />
-                ))}
+                {titleLinkCtas.map((cta) =>
+                  cta.action === "decline_poa" ? (
+                    <PoderNotarialDeclineCta
+                      key={`${step.id}-${cta.action}-${cta.label}`}
+                      investmentId={investmentId}
+                      onComplete={onUploadComplete}
+                    />
+                  ) : (
+                    <StepTitleLinkCta key={`${step.id}-${cta.action}-${cta.label}`} cta={cta} />
+                  )
+                )}
               </div>
             ) : null}
           </div>
@@ -304,7 +340,7 @@ export function StepItem({
           ) : null}
         </div>
 
-        {isCompleted && step.date && !isCompletedPaymentCopy ? (
+        {isCompleted && step.date && !isCompletedPaymentCopy && step.id !== "nota_simple" ? (
           <p className="mt-1 text-sm leading-5 text-[var(--vistral-semantic-text-secondary)]">
             {step.date}
           </p>
@@ -321,6 +357,8 @@ export function StepItem({
           >
             {step.resolvedCopy}
             {isInProgress &&
+            step.id !== "nota_simple" &&
+            step.id !== "pagar_fee_prophero" &&
             step.date &&
             step.resolvedCopy &&
             !step.resolvedCopy.includes(step.date)
@@ -330,16 +368,36 @@ export function StepItem({
         ) : null}
 
         {isCompleted && step.resolvedCTAs.length > 0 ? (
-          <div className="mt-1 flex flex-col items-start gap-1">
-            {step.resolvedCTAs.map((cta) => (
-              <StepCompletedLinkCta key={`${step.id}-${cta.action}-${cta.label}`} cta={cta} />
-            ))}
+          <div className="mt-3 flex flex-col items-start gap-2">
+            {step.resolvedCTAs.map((cta) =>
+              cta.action === "resume_poa" ? (
+                <PoderNotarialResumeCta
+                  key={`${step.id}-${cta.action}-${cta.label}`}
+                  investmentId={investmentId}
+                  onComplete={onUploadComplete}
+                />
+              ) : (
+                <StepCompletedLinkCta key={`${step.id}-${cta.action}-${cta.label}`} cta={cta} />
+              )
+            )}
           </div>
         ) : null}
 
-        {isInProgress && (primaryCtas.length > 0 || secondaryCtas.length > 0) ? (
+        {showActiveUi && (primaryCtas.length > 0 || secondaryCtas.length > 0) ? (
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-            {primaryCtas.map((cta) => renderUploadCta(cta, step.id, investmentId, onUploadComplete))}
+            {primaryCtas.map((cta) =>
+              cta.action === "start_notarial" ? (
+                <PoderNotarialStartCta
+                  key={`${step.id}-${cta.action}-${cta.label}`}
+                  investmentId={investmentId}
+                  label={cta.label}
+                  variant="primary"
+                  onComplete={onUploadComplete}
+                />
+              ) : (
+                renderUploadCta(cta, step.id, investmentId, onUploadComplete)
+              )
+            )}
             {secondaryCtas.map((cta) =>
               getUploadEndpoint(cta.action) ? (
                 renderUploadCta(cta, step.id, investmentId, onUploadComplete)

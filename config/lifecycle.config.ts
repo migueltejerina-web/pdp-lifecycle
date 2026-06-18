@@ -34,7 +34,7 @@ export const LIFECYCLE_CONFIG: StageConfig[] = [
       {
         id: "pagar_fee_prophero",
         title: "Pago tarifa PropHero",
-        inProgressCopy: "Importe: {dynamicValue} · Vence el {date}",
+        inProgressCopy: "Importe: {dynamicValue}",
         doneCopy: "Importe: {dynamicValue}",
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
@@ -49,52 +49,71 @@ export const LIFECYCLE_CONFIG: StageConfig[] = [
       {
         id: "nota_simple",
         title: "Nota simple",
-        inProgressCopy: "En breves subiremos la nota simple actualizada",
-        doneCopy: "Necesaria para completar el poder notarial online",
+        owner: "prophero",
+        inProgressCopy:
+          "En breves subiremos la nota simple actualizada, necesaria para solicitar el poder notarial",
         doneCTAs: [{ label: "Ver nota simple", action: "view_file" }],
       },
       {
         id: "poder_notarial",
         title: "Poder notarial online",
+        owner: "investor",
         inProgressCopy:
           'Autoriza a PropHero para gestionar la compra en tu nombre. Si prefieres hacerlo tú en persona, haz click en "Marcar como completado".',
         inProgressCTAs: [
-          { label: "Marcar como completado", action: "mark_complete", variant: "title_link" },
-          { label: "Iniciar poder notarial", action: "start_notarial", variant: "primary" },
-          { label: "Subir poder notarial", action: "upload_file", variant: "secondary", icon: "upload" },
+          {
+            label: "No estoy interesado en poder notarial",
+            action: "decline_poa",
+            variant: "title_link",
+          },
+          { label: "Solicitar poder notarial", action: "start_notarial", variant: "primary" },
+          { label: "Subir poder notarial", action: "upload_company_deed", variant: "secondary", icon: "upload" },
           { label: "Enviar por SIGNO", action: "send_signo", variant: "secondary", icon: "send" },
         ],
-        doneCopy: "Poder notarial enviado a {dynamicValue}",
+        doneCopy: "Poder enviado a la notaría {dynamicValue}",
         doneCTAs: [{ label: "Ver poder", action: "view_file" }],
       },
       {
         id: "tasacion",
         title: "Tasación",
+        owner: "prophero",
         doneCTAs: [{ label: "Ver tasación", action: "view_file" }],
       },
       {
         id: "ficha_hipoteca",
         title: "Ficha de hipoteca (FEIN)",
-        inProgressCopy: "",
-        doneCopy: "",
+        owner: "investor",
+        inProgressCTAs: [
+          {
+            label: "Subir FEIN",
+            action: "upload_fein_signature_doc",
+            variant: "primary",
+            icon: "upload",
+          },
+        ],
         doneCTAs: [{ label: "Ver FEIN", action: "view_file" }],
       },
       {
         id: "pago_reaf",
-        title: "Pago REAF",
+        title: "Pago de honorarios de agencia (REAF)",
+        owner: "investor",
         inProgressCopy: "Importe a pagar: {dynamicValue}",
-        inProgressCTAs: [{ label: "Subir comprobante", action: "upload_file" }],
+        inProgressCTAs: [{ label: "Ir al pago", action: "view_payment" }],
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
       {
         id: "pago_provision_fondos",
         title: "Pago de provisión de fondos",
-        inProgressCopy: "Este pago lo gestiona directamente tu banco. No necesitas hacer nada.",
+        owner: "investor",
+        inProgressCopy:
+          "Importe: {dynamicValue} · Tu banco gestiona el pago; puedes adjuntar el comprobante cuando lo tengas",
+        inProgressCTAs: [{ label: "Ir al pago", action: "view_payment" }],
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
       {
         id: "fecha_firma",
         title: "Fecha final de firma",
+        owner: "prophero",
         inProgressCopy:
           "PropHero está coordinando la fecha con todas las partes. Te avisaremos en cuanto esté confirmada.",
         doneCopy: "{dynamicValue}",
@@ -102,15 +121,16 @@ export const LIFECYCLE_CONFIG: StageConfig[] = [
       {
         id: "pago_fee_escrituras",
         title: "Pago tarifa PropHero escrituras",
+        owner: "investor",
         inProgressCopy: "Importe a pagar: {dynamicValue}",
-        inProgressCTAs: [{ label: "Subir comprobante", action: "upload_file" }],
+        inProgressCTAs: [{ label: "Ir al pago", action: "view_payment" }],
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
       {
         id: "pago_final_propiedad",
-        title: "Pago final de la propiedad",
-        inProgressCopy:
-          "Importe: {dynamicValue} · Esperando confirmación pago para adjuntar el comprobante",
+        title: "Pago final de escritura de propiedad",
+        owner: "investor",
+        inProgressCopy: "{dynamicValue} - a pagar en notaría",
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
     ],

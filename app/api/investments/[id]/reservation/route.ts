@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isHubSpotConfigured } from "@/lib/hubspot/client";
 import { getReservedListingIdForDeal } from "@/lib/hubspot/listing-associations";
 import {
   blockListingForInvestor,
@@ -7,8 +8,35 @@ import {
   getReservationStatusForDeal,
   getReservationStatusForListing,
 } from "@/lib/hubspot/reservation";
-import { isHubSpotConfigured } from "@/lib/hubspot/client";
 import { getInvestmentHubSpotRefs } from "@/lib/hubspot/investment-registry";
+import { DocumentViewKind } from "@/lib/investments/document-view.types";
+import { toViewableDocumentUrl } from "@/lib/investments/document-view-url";
+
+function mapReservationDocumentUrls(
+  investmentId: string,
+  status: Awaited<ReturnType<typeof getReservationStatusForDeal>>
+) {
+  if (!status) return status;
+
+  return {
+    ...status,
+    arrasContractUrl: toViewableDocumentUrl(
+      investmentId,
+      status.arrasContractUrl,
+      DocumentViewKind.ArrasContract
+    ),
+    arrasReceiptUrl: toViewableDocumentUrl(
+      investmentId,
+      status.arrasReceiptUrl,
+      DocumentViewKind.ArrasReceipt
+    ),
+    exchangeFeeReceiptUrl: toViewableDocumentUrl(
+      investmentId,
+      status.exchangeFeeReceiptUrl,
+      DocumentViewKind.ExchangeFeeReceipt
+    ),
+  };
+}
 
 export async function GET(
   _request: Request,
@@ -36,7 +64,10 @@ export async function GET(
       return NextResponse.json({ ...getMockReservationStatus(), configured: true });
     }
 
-    return NextResponse.json({ ...status, configured: true });
+    return NextResponse.json({
+      ...mapReservationDocumentUrls(id, status),
+      configured: true,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "HubSpot reservation read failed";
     return NextResponse.json(

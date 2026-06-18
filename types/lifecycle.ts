@@ -9,16 +9,23 @@ export type StepCTAAction =
   | "upload_contract"
   | "upload_arras_receipt"
   | "upload_exchange_fee_receipt"
+  | "upload_company_deed"
+  | "upload_final_payment_proof"
+  | "upload_fein_signature_doc"
   | "view_details"
   | "view_payment"
   | "view_file"
   | "mark_complete"
+  | "decline_poa"
+  | "resume_poa"
   | "start_notarial"
   | "send_signo";
 
 export type StepCTAVariant = "primary" | "secondary" | "title_link";
 
 export type StepCTAIcon = "upload" | "send";
+
+export type StepOwner = "investor" | "prophero";
 
 export interface StepCTA {
   label: string;
@@ -37,6 +44,8 @@ export interface StepConfig {
   doneCTAs?: StepCTA[];
   countdown?: boolean;
   countdownLabel?: string;
+  /** Who drives this step — shown as a badge when `prophero`. */
+  owner?: StepOwner;
 }
 
 export interface StageConfig {
@@ -53,6 +62,16 @@ export interface Step {
   date?: string;
   dynamicValue?: string;
   documentUrl?: string;
+  /** Multiple document links (e.g. nota simple with several registry docs). */
+  documentUrls?: string[];
+  formUrl?: string;
+  /** Poder notarial declined — show resume instead of upload CTAs. */
+  poaDeclined?: boolean;
+  /** Online poder notarial form submitted — awaiting PropHero contact. */
+  poaFormSubmitted?: boolean;
+  /** FEIN step: investor must upload when TECH URLs field is empty. */
+  requiresFeinUpload?: boolean;
+  paymentLink?: string;
   countdownHours?: number;
   countdownMinutes?: number;
   countdownExpiresAt?: string;
@@ -79,6 +98,9 @@ export interface EnrichedStep extends StepConfig {
   countdownExpiresAt?: string;
   resolvedCopy?: string;
   resolvedCTAs: StepCTA[];
+  owner?: StepOwner;
+  /** First incomplete step in order — highlighted in the timeline. */
+  isRecommended?: boolean;
 }
 
 export interface EnrichedStage extends Omit<StageConfig, "steps"> {
@@ -102,6 +124,7 @@ export interface SummaryCard {
   paymentSenalAmount?: string;
   primaryCtaLabel?: string;
   primaryCtaAction?: StepCTAAction;
+  primaryCtaUrl?: string;
   countdownHours?: number;
   countdownMinutes?: number;
   countdownExpiresAt?: string;

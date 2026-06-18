@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
+import { applyEscriturasState } from "@/utils/apply-escrituras-state";
 import { applyPaymentAmounts, type HubSpotPaymentAmounts } from "@/utils/apply-arras-amount";
 import {
   applyListingPropertyDetails,
@@ -12,6 +13,8 @@ import {
   applyReservationState,
   type HubSpotReservationState,
 } from "@/utils/apply-reservation-state";
+import type { HubSpotEscriturasInfo } from "@/lib/hubspot/escrituras.types";
+import { normalizeLifecycleEscriturasParallel } from "@/utils/escrituras-lifecycle.utils";
 import { mockAdvisor, mockLifecycle, mockProperty, mockSummaryCard } from "./mock/property.mock";
 import { AdvisorCard } from "./components/AdvisorCard";
 import { InvestmentNavbar } from "./components/InvestmentNavbar";
@@ -28,6 +31,7 @@ export default function InvestmentDetailPage() {
   const [paymentAmounts, setPaymentAmounts] = useState<HubSpotPaymentAmounts>({});
   const [listingPropertyDetails, setListingPropertyDetails] = useState<HubSpotPropertyDetails>({});
   const [reservationState, setReservationState] = useState<HubSpotReservationState>({});
+  const [escriturasState, setEscriturasState] = useState<HubSpotEscriturasInfo | null>(null);
   const [reservationRefreshKey, setReservationRefreshKey] = useState(0);
 
   const refreshReservation = () => {
@@ -46,6 +50,10 @@ export default function InvestmentDetailPage() {
             typeof data.arrasAmount === "number" ? data.arrasAmount : current.arrasAmount,
           senalAmount:
             typeof data.senalAmount === "number" ? data.senalAmount : current.senalAmount,
+          exchangeFeeAmount:
+            typeof data.exchangeFeeAmount === "number"
+              ? data.exchangeFeeAmount
+              : current.exchangeFeeAmount,
         }));
       })
       .catch(() => {});
@@ -113,18 +121,35 @@ export default function InvestmentDetailPage() {
     };
   }, [investmentId, reservationRefreshKey]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadEscrituras = () => {
+      fetch(`/api/investments/${investmentId}/escrituras`)
+        .then((response) => response.json())
+        .then((data: HubSpotEscriturasInfo & { configured?: boolean }) => {
+          if (cancelled || !data.configured) return;
+          setEscriturasState(data);
+        })
+        .catch(() => {});
+    };
+
+    loadEscrituras();
+    const intervalId = window.setInterval(loadEscrituras, 20_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [investmentId, reservationRefreshKey]);
+
   const { property, lifecycle, summaryCard } = useMemo(() => {
     const withHubSpotDetails = applyListingPropertyDetails(
       mockProperty,
       mockSummaryCard,
       listingPropertyDetails
     );
-    const shouldMergeHubSpotReservation =
-      reservationRefreshKey > 0 ||
-      reservationState.arrasContractSent ||
-      reservationState.arrasContractSigned ||
-      reservationState.arrasReceiptUploaded ||
-      reservationState.exchangeFeeReceiptUploaded;
+    const shouldMergeHubSpotReservation = reservationState.configured === true;
 
     const withReservation = shouldMergeHubSpotReservation
       ? applyReservationState(
@@ -143,7 +168,24 @@ export default function InvestmentDetailPage() {
       paymentAmounts
     );
 
-    const activeCountdownStep = withPayments.lifecycle.stages
+    const arrasCompleted = withPayments.lifecycle.stages.find((stage) => stage.id === "arras")
+      ?.status === "completed";
+
+    const withEscrituras =
+      escriturasState && arrasCompleted
+        ? applyEscriturasState(
+            withPayments.lifecycle,
+            withPayments.summaryCard,
+            escriturasState
+          )
+        : {
+            lifecycle: withPayments.lifecycle,
+            summaryCard: withPayments.summaryCard,
+          };
+
+    const parallelLifecycle = normalizeLifecycleEscriturasParallel(withEscrituras.lifecycle);
+
+    const activeCountdownStep = parallelLifecycle.stages
       .flatMap((stage) => stage.steps)
       .find(
         (step) =>
@@ -155,19 +197,19 @@ export default function InvestmentDetailPage() {
     const mergedSummaryCard =
       activeCountdownStep !== undefined
         ? {
-            ...withPayments.summaryCard,
+            ...withEscrituras.summaryCard,
             countdownHours: activeCountdownStep.countdownHours,
             countdownMinutes: activeCountdownStep.countdownMinutes,
             countdownExpiresAt: activeCountdownStep.countdownExpiresAt,
           }
-        : withPayments.summaryCard;
+        : withEscrituras.summaryCard;
 
     return {
       property: withPayments.property ?? mockProperty,
-      lifecycle: withPayments.lifecycle,
+      lifecycle: parallelLifecycle,
       summaryCard: mergedSummaryCard,
     };
-  }, [listingPropertyDetails, paymentAmounts, reservationRefreshKey, reservationState]);
+  }, [listingPropertyDetails, paymentAmounts, reservationRefreshKey, reservationState, escriturasState]);
 
   const showPaymentBanner =
     lifecycle.currentStep === "pagar_arras" ||

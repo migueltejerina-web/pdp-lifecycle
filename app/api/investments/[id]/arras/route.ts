@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  getExchangeFeeAmountForDeal,
   getPaymentAmountsForDeal,
   getPaymentAmountsForListing,
 } from "@/lib/hubspot/arras";
@@ -11,6 +12,7 @@ function emptyPaymentResponse(extra?: Record<string, unknown>) {
   return {
     arrasAmount: null,
     senalAmount: null,
+    exchangeFeeAmount: null,
     ...extra,
   };
 }
@@ -31,18 +33,28 @@ export async function GET(
   }
 
   try {
+    let result: Awaited<ReturnType<typeof getPaymentAmountsForDeal>> = null;
+
     if (refs.hubspotListingId) {
-      const result = await getPaymentAmountsForListing(refs.hubspotListingId);
-      if (result) {
-        return NextResponse.json({ ...result, configured: true });
-      }
+      result = await getPaymentAmountsForListing(refs.hubspotListingId);
     }
 
-    if (refs.hubspotDealId) {
-      const result = await getPaymentAmountsForDeal(refs.hubspotDealId);
-      if (result) {
-        return NextResponse.json({ ...result, configured: true });
-      }
+    if (!result && refs.hubspotDealId) {
+      result = await getPaymentAmountsForDeal(refs.hubspotDealId);
+    }
+
+    const exchangeFeeAmount =
+      result?.exchangeFeeAmount ??
+      (refs.hubspotDealId ? await getExchangeFeeAmountForDeal(refs.hubspotDealId) : null);
+
+    if (result || exchangeFeeAmount != null) {
+      return NextResponse.json({
+        ...(result ?? { source: "deal_rollup" as const }),
+        ...(exchangeFeeAmount != null ? { exchangeFeeAmount } : {}),
+        configured: true,
+        ...(refs.hubspotDealId ? { dealId: refs.hubspotDealId } : {}),
+        ...(refs.hubspotListingId ? { listingId: refs.hubspotListingId } : {}),
+      });
     }
 
     return NextResponse.json(

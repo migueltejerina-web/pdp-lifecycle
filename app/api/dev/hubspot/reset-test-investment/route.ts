@@ -21,8 +21,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => ({}))) as { investmentId?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    investmentId?: string;
+    target?: "arras_firma_contrato" | "arras_reservado";
+  };
   const investmentId = body.investmentId?.trim() || mockProperty.id;
+  const target = body.target ?? "arras_firma_contrato";
   const refs = getInvestmentHubSpotRefs(investmentId);
 
   if (!refs?.hubspotDealId || !refs.hubspotListingId) {
@@ -33,13 +37,20 @@ export async function POST(request: Request) {
     const result = await resetTestInvestmentHubSpot({
       dealId: refs.hubspotDealId,
       listingId: refs.hubspotListingId,
+      target,
     });
+
+    const messageByTarget = {
+      arras_firma_contrato:
+        "Archivos borrados y deal en firma de contrato. Recarga /investments/prop_001.",
+      arras_reservado:
+        "Archivos borrados y listing en Available. Recarga /investments/prop_001.",
+    } as const;
 
     return NextResponse.json({
       ok: true,
       investmentId,
-      message:
-        "Campos vaciados en HubSpot. Recarga /investments/prop_001 para ver la UI en reserva confirmada.",
+      message: messageByTarget[target],
       ...result,
     });
   } catch (error) {

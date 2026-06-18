@@ -84,7 +84,8 @@ function escriturasNotaSimpleSummary(
     reservedDate: reservationDate,
     stageTitle: "Escritura",
     proximaAccion: "Subiendo nota simple",
-    proximaAccionSubtext: "En breves subiremos el documento actualizado",
+    proximaAccionSubtext:
+      "En breves subiremos la nota simple actualizada, necesaria para solicitar el poder notarial",
     actionBoxTitle: undefined,
     actionBoxLinkLabel: undefined,
     actionBoxLinkAction: undefined,
@@ -191,7 +192,7 @@ export function applyReservationState(
             return {
               ...step,
               status: "in_progress",
-              ...(step.date ? { date: step.date } : {}),
+              date: undefined,
             };
           }
           return step;
@@ -207,16 +208,16 @@ export function applyReservationState(
         summaryCard: {
           ...summaryCard,
           reservedDate: reservationDate,
+          stageTitle: "Arras",
           actionBoxTitle: "Próxima acción",
-          actionBoxLinkLabel: "Ver detalles",
-          actionBoxLinkAction: "view_details",
+          actionBoxLinkLabel: undefined,
+          actionBoxLinkAction: undefined,
+          proximaAccion: "Pago tarifa PropHero",
           proximaAccionAmount: summaryCard.bannerImporte ?? summaryCard.proximaAccionAmount,
-          proximaAccionSubtext: summaryCard.bannerVencimiento
-            ? `Tarifa PropHero · vence el ${summaryCard.bannerVencimiento}`
-            : "Tarifa PropHero",
+          proximaAccionSubtext: "Sube el comprobante de pago",
           primaryCtaLabel: "Subir comprobante",
           primaryCtaAction: "upload_exchange_fee_receipt",
-          ...(summaryCard.bannerVencimiento ? { bannerVencimiento: summaryCard.bannerVencimiento } : {}),
+          bannerVencimiento: undefined,
           countdownHours: undefined,
           countdownMinutes: undefined,
           countdownExpiresAt: undefined,
@@ -257,9 +258,11 @@ export function applyReservationState(
       summaryCard: {
         ...summaryCard,
         reservedDate: reservationDate,
+        stageTitle: "Arras",
         actionBoxTitle: "Próxima acción",
-        actionBoxLinkLabel: "Ver detalles",
-        actionBoxLinkAction: "view_details",
+        actionBoxLinkLabel: undefined,
+        actionBoxLinkAction: undefined,
+        proximaAccion: "Pago de arras",
         proximaAccionAmount: summaryCard.bannerImporte ?? summaryCard.proximaAccionAmount,
         proximaAccionSubtext: summaryCard.bannerVencimiento
           ? `Contrato de arras · vence el ${summaryCard.bannerVencimiento}`

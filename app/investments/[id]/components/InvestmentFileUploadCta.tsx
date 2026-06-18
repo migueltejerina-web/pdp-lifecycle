@@ -12,18 +12,27 @@ export function getUploadEndpoint(action: StepCTAAction): string | null {
   if (action === "upload_contract") return "arras-contract";
   if (action === "upload_arras_receipt") return "arras-receipt";
   if (action === "upload_exchange_fee_receipt") return "exchange-fee-receipt";
+  if (action === "upload_company_deed") return "company-deed";
+  if (action === "upload_final_payment_proof") return "final-payment-proof";
+  if (action === "upload_fein_signature_doc") return "fein-signature-doc";
   return null;
 }
 
 function uploadErrorMessage(action: StepCTAAction): string {
   if (action === "upload_arras_receipt") return "No se pudo subir el comprobante";
   if (action === "upload_exchange_fee_receipt") return "No se pudo subir el comprobante de tarifa";
+  if (action === "upload_company_deed") return "No se pudo subir el poder notarial";
+  if (action === "upload_final_payment_proof") return "No se pudo subir el comprobante de pago final";
+  if (action === "upload_fein_signature_doc") return "No se pudo subir la FEIN";
   return "No se pudo subir el contrato";
 }
 
 function uploadSuccessMessage(action: StepCTAAction): string {
   if (action === "upload_arras_receipt") return "Comprobante subido correctamente";
   if (action === "upload_exchange_fee_receipt") return "Comprobante de tarifa subido correctamente";
+  if (action === "upload_company_deed") return "Poder notarial subido correctamente";
+  if (action === "upload_final_payment_proof") return "Comprobante de pago final subido correctamente";
+  if (action === "upload_fein_signature_doc") return "FEIN subida correctamente";
   return "Contrato subido correctamente";
 }
 

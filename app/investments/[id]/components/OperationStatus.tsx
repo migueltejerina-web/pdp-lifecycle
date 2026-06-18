@@ -12,9 +12,8 @@ interface OperationStatusProps {
 }
 
 function resolveInitialExpandedStage(lifecycle: Lifecycle): string | null {
-  const arrasStage = lifecycle.stages.find((stage) => stage.id === "arras");
-  if (arrasStage?.status === "completed" && lifecycle.currentStage === "escrituras") {
-    return "arras";
+  if (lifecycle.currentStage === "escrituras") {
+    return "escrituras";
   }
   return lifecycle.currentStage;
 }
