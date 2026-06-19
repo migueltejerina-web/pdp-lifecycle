@@ -109,6 +109,7 @@ function resolveCtaVariant(cta: StepCTA, isCompleted: boolean): StepCTAVariant {
     cta.action === "upload_contract" ||
     cta.action === "upload_arras_receipt" ||
     cta.action === "upload_exchange_fee_receipt" ||
+    cta.action === "upload_reaf_receipt" ||
     cta.action === "upload_company_deed" ||
     cta.action === "upload_final_payment_proof" ||
     cta.action === "upload_fein_signature_doc" ||
@@ -155,14 +156,18 @@ function StepSecondaryLinkCta({ cta }: { cta: StepCTA }) {
 }
 
 function StepPrimaryCta({ cta }: { cta: StepCTA }) {
-  const isSolid = cta.action === "start_notarial";
+  const isSolid =
+    cta.action === "start_notarial" ||
+    cta.action === "view_payment" ||
+    cta.action === "open_mail" ||
+    cta.action === "open_document";
 
   return (
     <button
       type="button"
       onClick={() => handleLifecycleCtaClick(cta)}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center justify-center rounded-full px-4 text-xs font-medium transition-opacity hover:opacity-90",
+        "inline-flex h-8 shrink-0 items-center justify-center rounded-full px-4 text-xs font-medium tracking-[-0.02em] transition-opacity hover:opacity-90",
         isSolid ? "bg-[#2050F6] text-white" : "bg-[#D9E7FF] text-[#162EB7]"
       )}
     >
@@ -358,6 +363,7 @@ export function StepItem({
             {step.resolvedCopy}
             {isInProgress &&
             step.id !== "nota_simple" &&
+            step.id !== "pagar_arras" &&
             step.id !== "pagar_fee_prophero" &&
             step.date &&
             step.resolvedCopy &&

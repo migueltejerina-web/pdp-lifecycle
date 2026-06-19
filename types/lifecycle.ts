@@ -9,6 +9,7 @@ export type StepCTAAction =
   | "upload_contract"
   | "upload_arras_receipt"
   | "upload_exchange_fee_receipt"
+  | "upload_reaf_receipt"
   | "upload_company_deed"
   | "upload_final_payment_proof"
   | "upload_fein_signature_doc"

@@ -1,7 +1,10 @@
 import type { EscriturasStepId, HubSpotEscriturasInfo } from "@/lib/hubspot/escrituras.types";
-import { ESCRITURAS_STEP_ORDER } from "@/lib/hubspot/escrituras.types";
 import { PODER_NOTARIAL_REQUEST_PROCESSING_COPY, PODER_NOTARIAL_WITHOUT_NOTA_SIMPLE_COPY } from "@/lib/hubspot/poder-notarial-prefill.types";
 import type { Lifecycle, SummaryCard } from "@/types/lifecycle";
+import {
+  filterEscriturasStepsForDisplay,
+  getEscriturasVisibleStepOrder,
+} from "@/utils/escrituras-lifecycle.utils";
 
 const ESCRITURAS_STAGE_ID = "escrituras";
 
@@ -19,15 +22,15 @@ const SUMMARY_BY_STEP: Partial<
   },
   tasacion: {
     proximaAccion: "Tasación",
-    proximaAccionSubtext: "Coordinamos la tasación con el banco.",
+    proximaAccionSubtext: "En breves subiremos la tasación",
   },
   ficha_hipoteca: {
-    proximaAccion: "Ficha de hipoteca",
-    proximaAccionSubtext: "Revisa y firma la FEIN cuando esté disponible.",
+    proximaAccion: "Ficha hipotecaria",
+    proximaAccionSubtext: "Sube tu ficha hipotecaria para continuar",
   },
   pago_reaf: {
     proximaAccion: "Pago de honorarios de agencia (REAF)",
-    proximaAccionSubtext: "Realiza el pago cuando recibas el enlace.",
+    proximaAccionSubtext: "Adjunta el comprobante cuando hayas realizado el pago.",
   },
   pago_provision_fondos: {
     proximaAccion: "Provisión de fondos",
@@ -35,11 +38,11 @@ const SUMMARY_BY_STEP: Partial<
   },
   fecha_firma: {
     proximaAccion: "Fecha de firma",
-    proximaAccionSubtext: "Coordinamos la cita ante notario con todas las partes.",
+    proximaAccionSubtext: "Pendiente de confirmar fecha",
   },
   pago_fee_escrituras: {
     proximaAccion: "Tarifa PropHero escrituras",
-    proximaAccionSubtext: "Pago de honorarios de gestión en escritura.",
+    proximaAccionSubtext: "Adjunta el comprobante cuando hayas realizado el pago.",
   },
   pago_final_propiedad: {
     proximaAccion: "Pago final de escritura de propiedad",
@@ -79,18 +82,17 @@ function buildEscriturasSummary(
     countdownExpiresAt: undefined,
   };
 
-  if (currentStep === "pago_reaf" && stepState.dynamicValue) {
+  if (currentStep === "pago_reaf") {
     return {
       ...base,
-      proximaAccionAmount: stepState.dynamicValue,
-      proximaAccionSubtext: "Honorarios de agencia (REAF)",
-      ...(stepState.paymentLink
+      ...(stepState.dynamicValue
         ? {
-            primaryCtaLabel: "Ir al pago",
-            primaryCtaAction: "view_payment" as const,
-            primaryCtaUrl: stepState.paymentLink,
+            proximaAccionAmount: stepState.dynamicValue,
+            proximaAccionSubtext: "Honorarios de agencia (REAF)",
           }
         : {}),
+      primaryCtaLabel: "Adjuntar comprobante",
+      primaryCtaAction: "upload_reaf_receipt",
     };
   }
 
@@ -99,28 +101,20 @@ function buildEscriturasSummary(
       ...base,
       proximaAccionAmount: stepState.dynamicValue,
       proximaAccionSubtext: "Provisión de fondos · gestionado por tu banco",
-      ...(stepState.paymentLink
-        ? {
-            primaryCtaLabel: "Ir al pago",
-            primaryCtaAction: "view_payment" as const,
-            primaryCtaUrl: stepState.paymentLink,
-          }
-        : {}),
     };
   }
 
-  if (currentStep === "pago_fee_escrituras" && stepState.dynamicValue) {
+  if (currentStep === "pago_fee_escrituras") {
     return {
       ...base,
-      proximaAccionAmount: stepState.dynamicValue,
-      proximaAccionSubtext: "Tarifa PropHero · escritura",
-      ...(stepState.paymentLink
+      ...(stepState.dynamicValue
         ? {
-            primaryCtaLabel: "Ir al pago",
-            primaryCtaAction: "view_payment" as const,
-            primaryCtaUrl: stepState.paymentLink,
+            proximaAccionAmount: stepState.dynamicValue,
+            proximaAccionSubtext: "Tarifa PropHero · escritura",
           }
         : {}),
+      primaryCtaLabel: "Adjuntar comprobante",
+      primaryCtaAction: "upload_exchange_fee_receipt",
     };
   }
 
@@ -133,12 +127,17 @@ function buildEscriturasSummary(
   }
 
   if (currentStep === "fecha_firma") {
+    if (stepState.date) {
+      return {
+        ...base,
+        proximaAccionAmount: stepState.date,
+        proximaAccionSubtext: stepState.dynamicValue ?? "Fecha confirmada",
+      };
+    }
+
     return {
       ...base,
-      ...(stepState.dynamicValue
-        ? { proximaAccionSubtext: stepState.dynamicValue }
-        : {}),
-      ...(stepState.date ? { proximaAccionAmount: stepState.date } : {}),
+      proximaAccionSubtext: "Pendiente de confirmar fecha",
     };
   }
 
@@ -146,7 +145,7 @@ function buildEscriturasSummary(
     if (stepState.requiresFeinUpload) {
       return {
         ...base,
-        primaryCtaLabel: "Subir FEIN",
+        primaryCtaLabel: "Subir documento",
         primaryCtaAction: "upload_fein_signature_doc",
       };
     }
@@ -188,7 +187,7 @@ function buildEscriturasSummary(
 
     return {
       ...base,
-      primaryCtaLabel: "Subir poder notarial",
+      primaryCtaLabel: "Subir documento",
       primaryCtaAction: "upload_company_deed",
     };
   }
@@ -207,6 +206,9 @@ export function applyEscriturasState(
 
   const currentStepState = escrituras.steps[escrituras.currentStep];
 
+  const financingNotRequired = escrituras.financingNotRequired === true;
+  const visibleStepOrder = getEscriturasVisibleStepOrder(financingNotRequired);
+
   const updatedLifecycle: Lifecycle = {
     ...lifecycle,
     currentStage: ESCRITURAS_STAGE_ID,
@@ -219,7 +221,8 @@ export function applyEscriturasState(
       return {
         ...stage,
         status: escrituras.stageStatus,
-        steps: stage.steps.map((step) => {
+        steps: filterEscriturasStepsForDisplay(
+          stage.steps.map((step) => {
           const hubSpotStep = escrituras.steps[step.id as EscriturasStepId];
           if (!hubSpotStep) return step;
 
@@ -251,11 +254,13 @@ export function applyEscriturasState(
             ...(hubSpotStep.paymentLink ? { paymentLink: hubSpotStep.paymentLink } : {}),
           };
         }),
+          financingNotRequired
+        ),
       };
     }),
   };
 
-  const allEscriturasCompleted = ESCRITURAS_STEP_ORDER.every(
+  const allEscriturasCompleted = visibleStepOrder.every(
     (stepId) => escrituras.steps[stepId].status === "completed"
   );
 

@@ -3,6 +3,7 @@ import "server-only";
 import {
   HUBSPOT_DEAL_APPRAISAL_DATE_PROPERTY,
   HUBSPOT_DEAL_COMPANY_DEED_PROPERTY,
+  HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTY,
   HUBSPOT_DEAL_ESCRITURAS_PROPERTIES,
   HUBSPOT_DEAL_FEIN_DEADLINE_DATE_PROPERTY,
   HUBSPOT_DEAL_FEIN_SIGNATURE_DOC_PROPERTY,
@@ -29,13 +30,17 @@ import {
   HUBSPOT_DEAL_PAYMENT_STATUS_FUNDS_PROVISION_PROPERTY,
   HUBSPOT_DEAL_PAYMENT_STATUS_REAF_PROPERTY,
   HUBSPOT_DEAL_REAL_ESTATE_AGENT_FEE_PROPERTY,
+  HUBSPOT_DEAL_REAL_ESTATE_AGENT_FEE_FILE_PROPERTY,
   HUBSPOT_DEAL_REAF_AMOUNT_PROPERTY,
   HUBSPOT_DEAL_REMAINING_NOTARY_PAYMENT_PROPERTY,
   HUBSPOT_DEAL_SOLICITOR_NOTARY_PROPERTY,
   HUBSPOT_DEAL_CLIENT_NOTARY_PROPERTY,
+  HUBSPOT_DEAL_FINANCING_PROPERTY,
   HUBSPOT_DEAL_TECH_COMPANY_DEED_URLS_PROPERTY,
   HUBSPOT_DEAL_POA_STATUS_PROPERTY,
   HUBSPOT_DEAL_VALUATION_PROPERTY,
+  HUBSPOT_DEAL_VALUATION_DOC_PROPERTY,
+  HUBSPOT_DEAL_TECH_VALUATION_DOC_URLS_PROPERTY,
   HUBSPOT_LISTING_ESCRITURAS_CONTEXT_PROPERTIES,
   HUBSPOT_LISTING_REAL_ESTATE_AGENT_FEE_PROPERTY,
   HUBSPOT_LISTING_ARRAS_PROPERTY,
@@ -60,6 +65,10 @@ import { parseUrlListFromField } from "./parse-url-list";
 import { resolveDealFileUrl } from "./resolve-deal-file-url";
 import { DocumentViewKind } from "@/lib/investments/document-view.types";
 import { toViewableDocumentUrl } from "@/lib/investments/document-view-url";
+import {
+  getEscriturasVisibleStepOrder,
+  isEscriturasFinancingNotRequired,
+} from "@/utils/escrituras-lifecycle.utils";
 import {
   ESCRITURAS_STEP_ORDER,
   type EscriturasStepId,
@@ -116,6 +125,15 @@ function isHubSpotPaid(raw: string | null | undefined): boolean {
 function isHubSpotTruthyCheckbox(raw: string | null | undefined): boolean {
   const normalized = raw?.trim().toLowerCase();
   return normalized === "true" || normalized === "yes" || normalized === "1";
+}
+
+function hasValuationDocument(
+  properties: Record<string, string | null | undefined>
+): boolean {
+  if (hasText(properties[HUBSPOT_DEAL_VALUATION_DOC_PROPERTY])) return true;
+  return (
+    parseUrlListFromField(properties[HUBSPOT_DEAL_TECH_VALUATION_DOC_URLS_PROPERTY]).length > 0
+  );
 }
 
 function isValuationComplete(raw: string | null | undefined): boolean {
@@ -264,7 +282,8 @@ async function resolveRawStepCompletions(
     ? buildNotaSimpleProxyUrls(options.investmentId, notaSimpleTechUrls.length)
     : [];
 
-  const [poaDocRaw, feinDocRaw, finalPaymentRaw] = await Promise.all([
+  const [poaDocRaw, feinDocRaw, finalPaymentRaw, valuationDocRaw, reafReceiptRaw, exchangeFeeReceiptRaw] =
+    await Promise.all([
     resolvePoaDocumentRaw(properties),
     resolveDealFileUrl(
       properties[HUBSPOT_DEAL_FEIN_SIGNATURE_DOC_PROPERTY],
@@ -272,6 +291,13 @@ async function resolveRawStepCompletions(
       properties[HUBSPOT_DEAL_TECH_FEIN_SIGNATURE_DOC_URLS_PROPERTY]
     ),
     resolveDealFileUrl(properties[HUBSPOT_DEAL_IR_PROOF_FINAL_PAYMENTS_PROPERTY], null, null),
+    resolveDealFileUrl(
+      properties[HUBSPOT_DEAL_VALUATION_DOC_PROPERTY],
+      null,
+      properties[HUBSPOT_DEAL_TECH_VALUATION_DOC_URLS_PROPERTY]
+    ),
+    resolveDealFileUrl(properties[HUBSPOT_DEAL_REAL_ESTATE_AGENT_FEE_FILE_PROPERTY], null, null),
+    resolveDealFileUrl(properties[HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTY], null, null),
   ]);
 
   const poaDocUrl = mapViewableUrl(
@@ -288,6 +314,21 @@ async function resolveRawStepCompletions(
     options?.investmentId,
     finalPaymentRaw,
     DocumentViewKind.FinalPaymentProof
+  );
+  const valuationDocUrl = mapViewableUrl(
+    options?.investmentId,
+    valuationDocRaw,
+    DocumentViewKind.ValuationDoc
+  );
+  const reafReceiptUrl = mapViewableUrl(
+    options?.investmentId,
+    reafReceiptRaw,
+    DocumentViewKind.ReafReceipt
+  );
+  const exchangeFeeReceiptUrl = mapViewableUrl(
+    options?.investmentId,
+    exchangeFeeReceiptRaw,
+    DocumentViewKind.ExchangeFeeReceipt
   );
 
   const realSettlementDate = formatSpanishDate(
@@ -324,9 +365,11 @@ async function resolveRawStepCompletions(
     })(),
     tasacion: {
       completed:
+        hasValuationDocument(properties) ||
         isValuationComplete(properties[HUBSPOT_DEAL_VALUATION_PROPERTY]) ||
         isHubSpotPaid(properties[HUBSPOT_DEAL_PAYMENT_STATUS_APPRAISAL_PROPERTY]),
       date: formatSpanishDate(properties[HUBSPOT_DEAL_APPRAISAL_DATE_PROPERTY]),
+      documentUrl: valuationDocUrl,
     },
     ficha_hipoteca: (() => {
       const techFeinUrls = properties[HUBSPOT_DEAL_TECH_FEIN_SIGNATURE_DOC_URLS_PROPERTY];
@@ -348,9 +391,11 @@ async function resolveRawStepCompletions(
       };
     })(),
     pago_reaf: {
-      completed: isHubSpotPaid(properties[HUBSPOT_DEAL_PAYMENT_STATUS_REAF_PROPERTY]),
+      completed:
+        isHubSpotPaid(properties[HUBSPOT_DEAL_PAYMENT_STATUS_REAF_PROPERTY]) ||
+        hasText(properties[HUBSPOT_DEAL_REAL_ESTATE_AGENT_FEE_FILE_PROPERTY]),
       dynamicValue: resolveRealEstateAgentFee(properties, options?.listingProperties),
-      paymentLink: properties[HUBSPOT_DEAL_PAYMENT_LINK_REAF_PROPERTY]?.trim() || undefined,
+      documentUrl: reafReceiptUrl,
     },
     pago_provision_fondos: {
       completed: isHubSpotPaid(
@@ -366,11 +411,12 @@ async function resolveRawStepCompletions(
       dynamicValue: fechaFirmaNotaryCopy,
     },
     pago_fee_escrituras: {
-      completed: isHubSpotPaid(properties[HUBSPOT_DEAL_PAYMENT_STATUS_EXCHANGE_PROPERTY]),
+      completed:
+        isHubSpotPaid(properties[HUBSPOT_DEAL_PAYMENT_STATUS_EXCHANGE_PROPERTY]) ||
+        hasText(properties[HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTY]),
       date: formatSpanishDate(properties[HUBSPOT_DEAL_PAYMENT_DATE_EXCHANGE_PROPERTY]),
       dynamicValue: formatEuroAmount(properties[HUBSPOT_DEAL_SETTLEMENT_FEE_AMOUNT_PROPERTY]),
-      paymentLink:
-        properties[HUBSPOT_DEAL_PAYMENT_LINK_EXCHANGE_PROPERTY]?.trim() || undefined,
+      documentUrl: exchangeFeeReceiptUrl,
     },
     pago_final_propiedad: {
       completed:
@@ -384,7 +430,8 @@ async function resolveRawStepCompletions(
 }
 
 function buildParallelEscriturasSteps(
-  rawSteps: Record<EscriturasStepId, RawStepCompletion>
+  rawSteps: Record<EscriturasStepId, RawStepCompletion>,
+  visibleStepOrder: EscriturasStepId[]
 ): { steps: Record<EscriturasStepId, EscriturasStepState>; currentStep: EscriturasStepId } {
   const steps = {} as Record<EscriturasStepId, EscriturasStepState>;
 
@@ -413,14 +460,17 @@ function buildParallelEscriturasSteps(
   }
 
   const firstIncomplete =
-    ESCRITURAS_STEP_ORDER.find((stepId) => steps[stepId].status !== "completed") ??
-    ESCRITURAS_STEP_ORDER[ESCRITURAS_STEP_ORDER.length - 1];
+    visibleStepOrder.find((stepId) => steps[stepId].status !== "completed") ??
+    visibleStepOrder[visibleStepOrder.length - 1];
 
   return { steps, currentStep: firstIncomplete };
 }
 
-function resolveStageStatus(steps: Record<EscriturasStepId, EscriturasStepState>) {
-  const statuses = ESCRITURAS_STEP_ORDER.map((id) => steps[id].status);
+function resolveStageStatus(
+  steps: Record<EscriturasStepId, EscriturasStepState>,
+  visibleStepOrder: EscriturasStepId[]
+) {
+  const statuses = visibleStepOrder.map((id) => steps[id].status);
   if (statuses.every((status) => status === "completed")) return "completed" as const;
   if (statuses.some((status) => status !== "pending")) return "in_progress" as const;
   return "pending" as const;
@@ -451,7 +501,11 @@ export async function getEscriturasForDeal(
     investmentId: options?.investmentId,
     listingProperties,
   });
-  const { steps, currentStep } = buildParallelEscriturasSteps(rawSteps);
+  const financingNotRequired = isEscriturasFinancingNotRequired(
+    deal.properties[HUBSPOT_DEAL_FINANCING_PROPERTY]
+  );
+  const visibleStepOrder = getEscriturasVisibleStepOrder(financingNotRequired);
+  const { steps, currentStep } = buildParallelEscriturasSteps(rawSteps, visibleStepOrder);
 
   if (steps.poder_notarial.status === "in_progress" && !steps.poder_notarial.poaFormSubmitted) {
     const formUrl = await buildPoderNotarialFormUrl(dealId, resolvedListingId);
@@ -462,9 +516,10 @@ export async function getEscriturasForDeal(
 
   return {
     source: "hubspot",
-    stageStatus: resolveStageStatus(steps),
+    stageStatus: resolveStageStatus(steps, visibleStepOrder),
     currentStep,
     steps,
+    financingNotRequired,
   };
 }
 

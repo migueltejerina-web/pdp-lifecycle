@@ -1,24 +1,19 @@
 import "server-only";
 
 import {
-  HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTIES,
-  HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTY,
-  HUBSPOT_DEAL_PAYMENT_DATE_EXCHANGE_PROPERTY,
-  HUBSPOT_DEAL_PAYMENT_STATUS_EXCHANGE_PROPERTY,
+  HUBSPOT_DEAL_PAYMENT_STATUS_REAF_PROPERTY,
+  HUBSPOT_DEAL_REAF_RECEIPT_PROPERTIES,
+  HUBSPOT_DEAL_REAL_ESTATE_AGENT_FEE_FILE_PROPERTY,
 } from "./constants";
 import { hubSpotFetch, isHubSpotConfigured } from "./client";
-import {
-  HUBSPOT_EXCHANGE_FEE_RECEIPT_UPLOAD_FOLDER,
-  resolveHubSpotFileUrl,
-  uploadFileToHubSpot,
-} from "./files";
+import { resolveHubSpotFileUrl, uploadFileToHubSpot } from "./files";
 
 interface HubSpotObjectResponse {
   id: string;
   properties: Record<string, string | null | undefined>;
 }
 
-export interface ExchangeFeeReceiptInfo {
+export interface ReafReceiptInfo {
   uploaded: boolean;
   receiptUrl: string | null;
   receiptFileId: string | null;
@@ -34,16 +29,16 @@ const ALLOWED_RECEIPT_MIME_TYPES = new Set([
 
 const MAX_RECEIPT_FILE_BYTES = 10 * 1024 * 1024;
 
-export async function getExchangeFeeReceiptForDeal(
-  dealId: string
-): Promise<ExchangeFeeReceiptInfo | null> {
+const HUBSPOT_REAF_RECEIPT_UPLOAD_FOLDER = "/pdp-lifecycle/receipts/reaf";
+
+export async function getReafReceiptForDeal(dealId: string): Promise<ReafReceiptInfo | null> {
   if (!isHubSpotConfigured()) return null;
 
   const deal = await hubSpotFetch<HubSpotObjectResponse>(
-    `/crm/v3/objects/deals/${dealId}?properties=${HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTIES}`
+    `/crm/v3/objects/deals/${dealId}?properties=${HUBSPOT_DEAL_REAF_RECEIPT_PROPERTIES}`
   );
 
-  const receiptFileId = deal.properties[HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTY] ?? null;
+  const receiptFileId = deal.properties[HUBSPOT_DEAL_REAL_ESTATE_AGENT_FEE_FILE_PROPERTY] ?? null;
   const receiptUrl = receiptFileId?.trim()
     ? await resolveHubSpotFileUrl(receiptFileId)
     : null;
@@ -56,7 +51,7 @@ export async function getExchangeFeeReceiptForDeal(
   };
 }
 
-export function getMockExchangeFeeReceiptInfo(): ExchangeFeeReceiptInfo {
+export function getMockReafReceiptInfo(): ReafReceiptInfo {
   return {
     uploaded: false,
     receiptUrl: null,
@@ -65,12 +60,12 @@ export function getMockExchangeFeeReceiptInfo(): ExchangeFeeReceiptInfo {
   };
 }
 
-export async function uploadExchangeFeeReceiptForDeal(
+export async function uploadReafReceiptForDeal(
   dealId: string,
   file: Blob,
   fileName: string,
   mimeType: string
-): Promise<ExchangeFeeReceiptInfo> {
+): Promise<ReafReceiptInfo> {
   if (!isHubSpotConfigured()) {
     throw new Error("HUBSPOT_PRIVATE_APP_TOKEN is not configured");
   }
@@ -86,25 +81,22 @@ export async function uploadExchangeFeeReceiptForDeal(
   const uploaded = await uploadFileToHubSpot({
     file,
     fileName,
-    folderPath: HUBSPOT_EXCHANGE_FEE_RECEIPT_UPLOAD_FOLDER,
+    folderPath: HUBSPOT_REAF_RECEIPT_UPLOAD_FOLDER,
   });
-
-  const paymentDateExchange = new Date().toISOString().slice(0, 10);
 
   await hubSpotFetch<HubSpotObjectResponse>(`/crm/v3/objects/deals/${dealId}`, {
     method: "PATCH",
     body: JSON.stringify({
       properties: {
-        [HUBSPOT_DEAL_EXCHANGE_FEE_RECEIPT_PROPERTY]: uploaded.id,
-        [HUBSPOT_DEAL_PAYMENT_DATE_EXCHANGE_PROPERTY]: paymentDateExchange,
-        [HUBSPOT_DEAL_PAYMENT_STATUS_EXCHANGE_PROPERTY]: "paid",
+        [HUBSPOT_DEAL_REAL_ESTATE_AGENT_FEE_FILE_PROPERTY]: uploaded.id,
+        [HUBSPOT_DEAL_PAYMENT_STATUS_REAF_PROPERTY]: "paid",
       },
     }),
   });
 
-  const receipt = await getExchangeFeeReceiptForDeal(dealId);
+  const receipt = await getReafReceiptForDeal(dealId);
   if (!receipt) {
-    throw new Error("Failed to read exchange fee receipt after upload");
+    throw new Error("Failed to read REAF receipt after upload");
   }
 
   return receipt;
