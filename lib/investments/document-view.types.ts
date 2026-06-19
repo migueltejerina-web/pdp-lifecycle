@@ -2,9 +2,11 @@ export const DocumentViewKind = {
   ArrasContract: "arras-contract",
   ArrasReceipt: "arras-receipt",
   ExchangeFeeReceipt: "exchange-fee-receipt",
+  ReafReceipt: "reaf-receipt",
   CompanyDeed: "company-deed",
   FeinSignature: "fein-signature",
   FinalPaymentProof: "final-payment-proof",
+  ValuationDoc: "valuation-doc",
 } as const;
 
 export type DocumentViewKind = (typeof DocumentViewKind)[keyof typeof DocumentViewKind];

@@ -5,6 +5,9 @@ import {
   HUBSPOT_DEAL_CONTRACT_SIMPLE_COPY_PROPERTY,
   HUBSPOT_DEAL_FEIN_SIGNATURE_DOC_PROPERTY,
   HUBSPOT_DEAL_IR_PROOF_FINAL_PAYMENTS_PROPERTY,
+  HUBSPOT_DEAL_POA_ATTACHMENT_PROPERTY,
+  HUBSPOT_DEAL_POA_STATUS_PROPERTY,
+  HUBSPOT_POA_STATUS_EXECUTED,
 } from "./constants";
 import { hubSpotFetch, isHubSpotConfigured } from "./client";
 import { resolveHubSpotFileUrl, uploadFileToHubSpot } from "./files";
@@ -57,7 +60,10 @@ async function uploadDealFileAttachment(
   folderPath: string,
   file: Blob,
   fileName: string,
-  mimeType: string
+  mimeType: string,
+  additionalProperties?:
+    | Record<string, string>
+    | ((fileId: string) => Record<string, string>)
 ): Promise<DealFileAttachmentInfo> {
   if (!isHubSpotConfigured()) {
     throw new Error("HUBSPOT_PRIVATE_APP_TOKEN is not configured");
@@ -77,11 +83,17 @@ async function uploadDealFileAttachment(
     folderPath,
   });
 
+  const extraProperties =
+    typeof additionalProperties === "function"
+      ? additionalProperties(uploaded.id)
+      : additionalProperties;
+
   await hubSpotFetch<HubSpotObjectResponse>(`/crm/v3/objects/deals/${dealId}`, {
     method: "PATCH",
     body: JSON.stringify({
       properties: {
         [propertyName]: uploaded.id,
+        ...extraProperties,
       },
     }),
   });
@@ -104,7 +116,9 @@ export function getMockDealFileAttachmentInfo(): DealFileAttachmentInfo {
 }
 
 export async function getCompanyDeedForDeal(dealId: string) {
-  return getDealFileAttachment(dealId, HUBSPOT_DEAL_COMPANY_DEED_PROPERTY);
+  const fromCompanyDeed = await getDealFileAttachment(dealId, HUBSPOT_DEAL_COMPANY_DEED_PROPERTY);
+  if (fromCompanyDeed?.uploaded) return fromCompanyDeed;
+  return getDealFileAttachment(dealId, HUBSPOT_DEAL_POA_ATTACHMENT_PROPERTY);
 }
 
 export async function uploadCompanyDeedForDeal(
@@ -119,7 +133,11 @@ export async function uploadCompanyDeedForDeal(
     "/pdp-lifecycle/escrituras/company-deed",
     file,
     fileName,
-    mimeType
+    mimeType,
+    (fileId) => ({
+      [HUBSPOT_DEAL_POA_ATTACHMENT_PROPERTY]: fileId,
+      [HUBSPOT_DEAL_POA_STATUS_PROPERTY]: HUBSPOT_POA_STATUS_EXECUTED,
+    })
   );
 }
 

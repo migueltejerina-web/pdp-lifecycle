@@ -34,6 +34,8 @@ export interface HubSpotEscriturasInfo {
   stageStatus: StageStatus;
   currentStep: EscriturasStepId;
   steps: Record<EscriturasStepId, EscriturasStepState>;
+  /** When true, tasación and ficha hipotecaria are omitted from the PDP. */
+  financingNotRequired?: boolean;
 }
 
 export interface HubSpotEscriturasState extends HubSpotEscriturasInfo {

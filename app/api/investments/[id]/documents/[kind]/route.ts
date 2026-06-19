@@ -10,9 +10,11 @@ const FILENAME_BY_KIND: Record<string, string> = {
   "arras-contract": "contrato-arras.pdf",
   "arras-receipt": "comprobante-arras.pdf",
   "exchange-fee-receipt": "comprobante-tarifa-prophero.pdf",
+  "reaf-receipt": "comprobante-reaf.pdf",
   "company-deed": "poder-notarial.pdf",
   "fein-signature": "fein.pdf",
   "final-payment-proof": "comprobante-pago-final.pdf",
+  "valuation-doc": "tasacion.pdf",
 };
 
 export async function GET(

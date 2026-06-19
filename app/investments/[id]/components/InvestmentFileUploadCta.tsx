@@ -12,6 +12,7 @@ export function getUploadEndpoint(action: StepCTAAction): string | null {
   if (action === "upload_contract") return "arras-contract";
   if (action === "upload_arras_receipt") return "arras-receipt";
   if (action === "upload_exchange_fee_receipt") return "exchange-fee-receipt";
+  if (action === "upload_reaf_receipt") return "reaf-receipt";
   if (action === "upload_company_deed") return "company-deed";
   if (action === "upload_final_payment_proof") return "final-payment-proof";
   if (action === "upload_fein_signature_doc") return "fein-signature-doc";
@@ -20,7 +21,8 @@ export function getUploadEndpoint(action: StepCTAAction): string | null {
 
 function uploadErrorMessage(action: StepCTAAction): string {
   if (action === "upload_arras_receipt") return "No se pudo subir el comprobante";
-  if (action === "upload_exchange_fee_receipt") return "No se pudo subir el comprobante de tarifa";
+  if (action === "upload_exchange_fee_receipt") return "No se pudo adjuntar el comprobante de tarifa";
+  if (action === "upload_reaf_receipt") return "No se pudo adjuntar el comprobante REAF";
   if (action === "upload_company_deed") return "No se pudo subir el poder notarial";
   if (action === "upload_final_payment_proof") return "No se pudo subir el comprobante de pago final";
   if (action === "upload_fein_signature_doc") return "No se pudo subir la FEIN";
@@ -29,7 +31,8 @@ function uploadErrorMessage(action: StepCTAAction): string {
 
 function uploadSuccessMessage(action: StepCTAAction): string {
   if (action === "upload_arras_receipt") return "Comprobante subido correctamente";
-  if (action === "upload_exchange_fee_receipt") return "Comprobante de tarifa subido correctamente";
+  if (action === "upload_exchange_fee_receipt") return "Comprobante de tarifa adjuntado correctamente";
+  if (action === "upload_reaf_receipt") return "Comprobante REAF adjuntado correctamente";
   if (action === "upload_company_deed") return "Poder notarial subido correctamente";
   if (action === "upload_final_payment_proof") return "Comprobante de pago final subido correctamente";
   if (action === "upload_fein_signature_doc") return "FEIN subida correctamente";
@@ -46,6 +49,8 @@ interface InvestmentFileUploadCtaProps {
   label: string;
   onUploaded?: () => void;
   variant?: "step" | "sidebar";
+  /** Step pill style — primary = solid brand, secondary = light blue (Figma escritura). */
+  buttonVariant?: "primary" | "secondary";
   icon?: StepCTAIcon;
 }
 
@@ -55,6 +60,7 @@ export function InvestmentFileUploadCta({
   label,
   onUploaded,
   variant = "step",
+  buttonVariant = "secondary",
   icon,
 }: InvestmentFileUploadCtaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +104,7 @@ export function InvestmentFileUploadCta({
   if (!uploadEndpoint) return null;
 
   const isSidebar = variant === "sidebar";
+  const isPrimaryStep = !isSidebar && buttonVariant === "primary";
 
   return (
     <div className={cn("flex flex-col gap-1", isSidebar ? "w-full" : "items-start")}>
@@ -113,13 +120,15 @@ export function InvestmentFileUploadCta({
         disabled={uploading}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "inline-flex items-center justify-center font-medium transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70",
+          "inline-flex items-center justify-center font-medium tracking-[-0.02em] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70",
           isSidebar
-            ? "mt-5 h-10 w-full gap-2 rounded-full bg-[var(--vistral-semantic-interactive-brand-default)] text-sm text-white"
-            : "h-8 shrink-0 gap-1.5 rounded-full bg-[#D9E7FF] px-4 text-xs text-[#162EB7]"
+            ? "mt-5 h-10 w-full rounded-full bg-[var(--vistral-semantic-interactive-brand-default)] px-5 text-base text-white"
+            : isPrimaryStep
+              ? "h-8 shrink-0 gap-1.5 rounded-full bg-[#2050F6] px-4 text-xs text-white"
+              : "h-8 shrink-0 gap-1.5 rounded-full bg-[#D9E7FF] px-3 text-xs text-[#0B2789]"
         )}
       >
-        {icon ? <CtaIcon icon={icon} /> : null}
+        {!isSidebar && icon ? <CtaIcon icon={icon} /> : null}
         {uploading ? "Subiendo…" : label}
       </button>
       {error ? (
@@ -156,6 +165,7 @@ export function renderStepUploadCta(
       action={cta.action}
       label={cta.label}
       icon={cta.icon}
+      buttonVariant={cta.variant === "primary" ? "primary" : "secondary"}
       onUploaded={onUploaded}
       variant="step"
     />

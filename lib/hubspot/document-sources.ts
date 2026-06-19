@@ -11,8 +11,11 @@ import {
   HUBSPOT_DEAL_TECH_COMPANY_DEED_URLS_PROPERTY,
   HUBSPOT_DEAL_TECH_FEIN_SIGNATURE_DOC_URLS_PROPERTY,
   HUBSPOT_DEAL_TECH_POA_ATTACHMENT_URLS_PROPERTY,
+  HUBSPOT_DEAL_TECH_VALUATION_DOC_URLS_PROPERTY,
+  HUBSPOT_DEAL_VALUATION_DOC_PROPERTY,
 } from "./constants";
 import { getExchangeFeeReceiptForDeal } from "./exchange-fee-receipt";
+import { getReafReceiptForDeal } from "./reaf-receipt";
 import { resolveDealFileUrl } from "./resolve-deal-file-url";
 import { DocumentViewKind, type DocumentViewKind as DocumentViewKindType } from "@/lib/investments/document-view.types";
 
@@ -38,6 +41,10 @@ export async function resolveDocumentSourceUrl(
     }
     case DocumentViewKind.ExchangeFeeReceipt: {
       const receipt = await getExchangeFeeReceiptForDeal(dealId);
+      return receipt?.receiptUrl ?? null;
+    }
+    case DocumentViewKind.ReafReceipt: {
+      const receipt = await getReafReceiptForDeal(dealId);
       return receipt?.receiptUrl ?? null;
     }
     case DocumentViewKind.CompanyDeed: {
@@ -82,6 +89,16 @@ export async function resolveDocumentSourceUrl(
         deal.properties[HUBSPOT_DEAL_IR_PROOF_FINAL_PAYMENTS_PROPERTY],
         null,
         null
+      );
+    }
+    case DocumentViewKind.ValuationDoc: {
+      const deal = await hubSpotFetch<HubSpotObjectResponse>(
+        `/crm/v3/objects/deals/${dealId}?properties=${HUBSPOT_DEAL_VALUATION_DOC_PROPERTY},${HUBSPOT_DEAL_TECH_VALUATION_DOC_URLS_PROPERTY}`
+      );
+      return resolveDealFileUrl(
+        deal.properties[HUBSPOT_DEAL_VALUATION_DOC_PROPERTY],
+        null,
+        deal.properties[HUBSPOT_DEAL_TECH_VALUATION_DOC_URLS_PROPERTY]
       );
     }
     default:

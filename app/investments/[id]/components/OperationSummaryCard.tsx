@@ -192,7 +192,6 @@ export function OperationSummaryCard({
                 investmentId={investmentId}
                 action={summaryCard.primaryCtaAction}
                 label={summaryCard.primaryCtaLabel}
-                icon="upload"
                 onUploaded={onUploadComplete}
                 variant="sidebar"
               />

@@ -31,8 +31,15 @@ function resolveCopy(
     return "Poder enviado a la notaría";
   }
 
-  if (stepConfig.id === "fecha_firma" && dynamicValue?.trim()) {
-    return dynamicValue;
+  if (stepConfig.id === "fecha_firma") {
+    if (mode === "done") {
+      if (date?.trim()) return date;
+      if (dynamicValue?.trim()) return dynamicValue;
+    }
+    if (mode === "inProgress" && !date?.trim()) {
+      return "Pendiente de confirmar fecha";
+    }
+    if (dynamicValue?.trim()) return dynamicValue;
   }
 
   if (
@@ -157,9 +164,14 @@ export function getEnrichedStages(lifecycle: Lifecycle): EnrichedStage[] {
           );
         } else if (step.id === "ficha_hipoteca" && step.status === "in_progress") {
           if (step.requiresFeinUpload) {
-            resolvedCTAs = resolvedCTAs.filter(
-              (cta) => cta.action === "upload_fein_signature_doc"
-            );
+            resolvedCTAs = [
+              {
+                label: "Subir documento",
+                action: "upload_fein_signature_doc",
+                variant: "primary",
+                icon: "upload",
+              },
+            ];
           } else {
             resolvedCTAs = resolvedCTAs.filter(
               (cta) => cta.action !== "upload_fein_signature_doc"

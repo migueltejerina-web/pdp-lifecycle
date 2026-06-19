@@ -27,7 +27,7 @@ export const LIFECYCLE_CONFIG: StageConfig[] = [
       {
         id: "pagar_arras",
         title: "Pago de arras",
-        inProgressCopy: "Importe: {dynamicValue} · Vence el {date}",
+        inProgressCopy: "Importe: {dynamicValue}",
         doneCopy: "Importe: {dynamicValue}",
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
@@ -77,15 +77,18 @@ export const LIFECYCLE_CONFIG: StageConfig[] = [
         id: "tasacion",
         title: "Tasación",
         owner: "prophero",
+        inProgressCopy: "En breves subiremos la tasación",
         doneCTAs: [{ label: "Ver tasación", action: "view_file" }],
       },
       {
         id: "ficha_hipoteca",
         title: "Ficha de hipoteca (FEIN)",
         owner: "investor",
+        inProgressCopy:
+          "Sube tu ficha hipotecaria para continuar con el proceso de escritura",
         inProgressCTAs: [
           {
-            label: "Subir FEIN",
+            label: "Subir documento",
             action: "upload_fein_signature_doc",
             variant: "primary",
             icon: "upload",
@@ -98,24 +101,27 @@ export const LIFECYCLE_CONFIG: StageConfig[] = [
         title: "Pago de honorarios de agencia (REAF)",
         owner: "investor",
         inProgressCopy: "Importe a pagar: {dynamicValue}",
-        inProgressCTAs: [{ label: "Ir al pago", action: "view_payment" }],
+        inProgressCTAs: [
+          {
+            label: "Adjuntar comprobante",
+            action: "upload_reaf_receipt",
+            variant: "primary",
+            icon: "upload",
+          },
+        ],
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
       {
         id: "pago_provision_fondos",
         title: "Pago de provisión de fondos",
         owner: "investor",
-        inProgressCopy:
-          "Importe: {dynamicValue} · Tu banco gestiona el pago; puedes adjuntar el comprobante cuando lo tengas",
-        inProgressCTAs: [{ label: "Ir al pago", action: "view_payment" }],
-        doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
+        inProgressCopy: "Importe: {dynamicValue} · Tu banco gestiona el pago",
       },
       {
         id: "fecha_firma",
         title: "Fecha final de firma",
         owner: "prophero",
-        inProgressCopy:
-          "PropHero está coordinando la fecha con todas las partes. Te avisaremos en cuanto esté confirmada.",
+        inProgressCopy: "Pendiente de confirmar fecha",
         doneCopy: "{dynamicValue}",
       },
       {
@@ -123,7 +129,14 @@ export const LIFECYCLE_CONFIG: StageConfig[] = [
         title: "Pago tarifa PropHero escrituras",
         owner: "investor",
         inProgressCopy: "Importe a pagar: {dynamicValue}",
-        inProgressCTAs: [{ label: "Ir al pago", action: "view_payment" }],
+        inProgressCTAs: [
+          {
+            label: "Adjuntar comprobante",
+            action: "upload_exchange_fee_receipt",
+            variant: "primary",
+            icon: "upload",
+          },
+        ],
         doneCTAs: [{ label: "Ver comprobante", action: "view_file" }],
       },
       {

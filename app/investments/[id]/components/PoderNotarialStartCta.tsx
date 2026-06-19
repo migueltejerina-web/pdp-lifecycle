@@ -37,7 +37,7 @@ export function PoderNotarialStartCta({
           variant === "sidebar" &&
             "mt-5 flex h-10 w-full items-center justify-center rounded-full bg-[var(--vistral-semantic-interactive-brand-default)] text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
           variant === "primary" &&
-            "inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-[#2050F6] px-4 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
+            "inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-[#2050F6] px-4 text-xs font-medium tracking-[-0.02em] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
           variant === "title_link" &&
             "shrink-0 text-xs font-medium leading-5 text-[#162EB7] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
         )}
