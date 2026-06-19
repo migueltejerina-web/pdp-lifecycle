@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   HUBSPOT_DEAL_ARRAS_PROPERTY,
+  HUBSPOT_DEAL_EXCHANGE_FEE_AMOUNT_PROPERTY,
   HUBSPOT_DEAL_PAYMENT_PROPERTIES,
   HUBSPOT_DEAL_SENAL_PROPERTY,
   HUBSPOT_LISTING_ARRAS_PROPERTY,
@@ -102,9 +103,22 @@ async function getDealPaymentRollups(dealId: string) {
   return parseDealPayments(deal.properties);
 }
 
+export async function getExchangeFeeAmountForDeal(dealId: string): Promise<number | null> {
+  if (!isHubSpotConfigured()) return null;
+
+  const deal = await hubSpotFetch<HubSpotObjectResponse>(
+    `/crm/v3/objects/deals/${dealId}?properties=${HUBSPOT_DEAL_EXCHANGE_FEE_AMOUNT_PROPERTY}`
+  );
+  return parseAmount(deal.properties[HUBSPOT_DEAL_EXCHANGE_FEE_AMOUNT_PROPERTY]);
+}
+
+/** Default PropHero arras exchange fee when HubSpot `exchange_fee_amount` is empty. */
+export { PROPHERO_ARRAS_EXCHANGE_FEE_DEFAULT_EUR } from "./constants";
+
 export interface PaymentAmountsResult {
   arrasAmount?: number;
   senalAmount?: number;
+  exchangeFeeAmount?: number;
   source: "listing" | "deal_rollup";
   listingId?: string;
   dealId?: string;
@@ -140,13 +154,38 @@ export async function getPaymentAmountsForDeal(
     listingId,
     dealId,
   });
-  if (listingResult) return listingResult;
+  if (listingResult) {
+    const exchangeFeeAmount = await getExchangeFeeAmountForDeal(dealId);
+    return {
+      ...listingResult,
+      ...(exchangeFeeAmount != null ? { exchangeFeeAmount } : {}),
+    };
+  }
 
   const fromDeal = await getDealPaymentRollups(dealId);
-  return toPaymentAmountsResult(fromDeal, "deal_rollup", {
+  const exchangeFeeAmount = await getExchangeFeeAmountForDeal(dealId);
+  const dealResult = toPaymentAmountsResult(fromDeal, "deal_rollup", {
     listingId,
     dealId,
   });
+
+  if (dealResult) {
+    return {
+      ...dealResult,
+      ...(exchangeFeeAmount != null ? { exchangeFeeAmount } : {}),
+    };
+  }
+
+  if (exchangeFeeAmount != null) {
+    return {
+      source: "deal_rollup",
+      listingId,
+      dealId,
+      exchangeFeeAmount,
+    };
+  }
+
+  return null;
 }
 
 export async function getPaymentAmountsForListing(

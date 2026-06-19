@@ -5,7 +5,7 @@ interface NavPaymentBannerProps {
 }
 
 export function NavPaymentBanner({ summaryCard }: NavPaymentBannerProps) {
-  if (!summaryCard.bannerImporte || !summaryCard.bannerVencimiento) {
+  if (!summaryCard.bannerImporte) {
     return null;
   }
 
@@ -16,10 +16,12 @@ export function NavPaymentBanner({ summaryCard }: NavPaymentBannerProps) {
         <strong className="font-semibold text-[var(--vistral-semantic-text-primary)]">
           {summaryCard.bannerImporte}
         </strong>
-        <span className="text-[var(--vistral-semantic-text-secondary)]">
-          {" "}
-          · Vence el {summaryCard.bannerVencimiento}
-        </span>
+        {summaryCard.bannerVencimiento ? (
+          <span className="text-[var(--vistral-semantic-text-secondary)]">
+            {" "}
+            · Vence el {summaryCard.bannerVencimiento}
+          </span>
+        ) : null}
       </p>
     </div>
   );

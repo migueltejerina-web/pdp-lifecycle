@@ -32,7 +32,7 @@ function pendingArrasSteps(
 }
 
 const ESCRITURAS_STEPS_COMPLETED: Step[] = [
-  { id: "nota_simple", status: "completed", date: "28 mayo 2026" },
+  { id: "nota_simple", status: "completed" },
   {
     id: "poder_notarial",
     status: "completed",
@@ -46,8 +46,8 @@ const ESCRITURAS_STEPS_COMPLETED: Step[] = [
   {
     id: "fecha_firma",
     status: "completed",
-    date: "12 junio 2026",
-    dynamicValue: "Notaría López · 18 junio 2026, 11:00",
+    date: "18 de junio de 2026",
+    dynamicValue: "En notaría Notaría López",
   },
   { id: "pago_fee_escrituras", status: "completed", date: "15 junio 2026", dynamicValue: "2.400€" },
   { id: "pago_final_propiedad", status: "completed", date: "18 junio 2026", dynamicValue: "243.000€" },
@@ -230,7 +230,7 @@ export const LIFECYCLE_SCENARIOS = {
   },
 
   escrituras_nota_simple: {
-    label: "Escritura · Nota simple (step 1 in progress — Arras completado)",
+    label: "Escritura · Nota simple (parallel — all steps open)",
     lifecycle: {
       currentStage: "escrituras",
       currentStep: "nota_simple",
@@ -241,14 +241,14 @@ export const LIFECYCLE_SCENARIOS = {
           status: "in_progress",
           steps: [
             { id: "nota_simple", status: "in_progress" },
-            { id: "poder_notarial", status: "pending" },
-            { id: "tasacion", status: "pending" },
-            { id: "ficha_hipoteca", status: "pending" },
-            { id: "pago_reaf", status: "pending", dynamicValue: "TBD" },
-            { id: "pago_provision_fondos", status: "pending" },
-            { id: "fecha_firma", status: "pending" },
-            { id: "pago_fee_escrituras", status: "pending", dynamicValue: "TBD" },
-            { id: "pago_final_propiedad", status: "pending", dynamicValue: "243.000€" },
+            { id: "poder_notarial", status: "in_progress" },
+            { id: "tasacion", status: "in_progress" },
+            { id: "ficha_hipoteca", status: "in_progress" },
+            { id: "pago_reaf", status: "in_progress", dynamicValue: "TBD" },
+            { id: "pago_provision_fondos", status: "in_progress", dynamicValue: "TBD" },
+            { id: "fecha_firma", status: "in_progress" },
+            { id: "pago_fee_escrituras", status: "in_progress", dynamicValue: "TBD" },
+            { id: "pago_final_propiedad", status: "in_progress", dynamicValue: "243.000€" },
           ],
         },
         { id: "reforma", status: "pending", steps: pendingReformaSteps() },
@@ -259,7 +259,8 @@ export const LIFECYCLE_SCENARIOS = {
       ...BASE_SUMMARY,
       stageTitle: "Escritura",
       proximaAccion: "Subiendo nota simple",
-      proximaAccionSubtext: "En breves subiremos el documento actualizado",
+      proximaAccionSubtext:
+        "En breves subiremos la nota simple actualizada, necesaria para solicitar el poder notarial",
     },
   },
 
@@ -274,7 +275,7 @@ export const LIFECYCLE_SCENARIOS = {
           id: "escrituras",
           status: "in_progress",
           steps: [
-            { id: "nota_simple", status: "completed", date: "28 mayo 2026" },
+            { id: "nota_simple", status: "completed" },
             { id: "poder_notarial", status: "in_progress" },
             { id: "tasacion", status: "pending" },
             { id: "ficha_hipoteca", status: "pending" },
@@ -308,7 +309,7 @@ export const LIFECYCLE_SCENARIOS = {
           id: "escrituras",
           status: "in_progress",
           steps: [
-            { id: "nota_simple", status: "completed", date: "28 mayo 2026" },
+            { id: "nota_simple", status: "completed" },
             {
               id: "poder_notarial",
               status: "completed",
@@ -322,8 +323,8 @@ export const LIFECYCLE_SCENARIOS = {
             {
               id: "fecha_firma",
               status: "completed",
-              date: "12 junio 2026",
-              dynamicValue: "Notaría López · 18 junio 2026, 11:00",
+              date: "18 de junio de 2026",
+              dynamicValue: "En notaría Notaría López",
             },
             {
               id: "pago_fee_escrituras",
